@@ -18,6 +18,8 @@
 #include "arch/LoadingWindow/LoadingWindow.h"
 #include "arch/Dialog/Dialog.h"
 
+#include "arch/InputHandler/InputHandler_Reflex.h"
+
 #include "ProductInfo.h"
 
 #include "Screen.h"
@@ -72,6 +74,7 @@
 #include <cmath>
 #include <ctime>
 #include <vector>
+
 
 #if defined(_WIN32)
 #define WIN32_LEAN_AND_MEAN
@@ -305,6 +308,7 @@ void ShutdownGame()
 	/* Delete INPUTMAN before the other INPUTFILTER handlers, or an input
 	 * driver may try to send a message to INPUTFILTER after we delete it. */
 	SAFE_DELETE( INPUTMAN );
+	SAFE_DELETE( REFLEX );
 	SAFE_DELETE( INPUTQUEUE );
 	SAFE_DELETE( INPUTMAPPER );
 	SAFE_DELETE( INPUTFILTER );
@@ -1051,6 +1055,8 @@ int sm_main(int argc, char* argv[])
 		SCREENMAN->SystemMessage( sMessage );
 
 	CodeDetector::RefreshCacheItems();
+
+	REFLEX = new InputHandler_Reflex;
 
 	// Run the main loop.
 	GameLoop::RunGameLoop();
