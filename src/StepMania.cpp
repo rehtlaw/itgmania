@@ -17,7 +17,7 @@
 #include "arch/ArchHooks/ArchHooks.h"
 #include "arch/LoadingWindow/LoadingWindow.h"
 #include "arch/Dialog/Dialog.h"
-
+#include "arch/InputHandler/InputHandler_Reflex.h"
 #include "ProductInfo.h"
 
 #include "Screen.h"
@@ -305,6 +305,7 @@ void ShutdownGame()
 	/* Delete INPUTMAN before the other INPUTFILTER handlers, or an input
 	 * driver may try to send a message to INPUTFILTER after we delete it. */
 	RageUtil::SafeDelete( INPUTMAN );
+	RageUtil::SafeDelete( REFLEX );
 	RageUtil::SafeDelete( INPUTQUEUE );
 	RageUtil::SafeDelete( INPUTMAPPER );
 	RageUtil::SafeDelete( INPUTFILTER );
@@ -1051,6 +1052,8 @@ int sm_main(int argc, char* argv[])
 		SCREENMAN->SystemMessage( sMessage );
 
 	CodeDetector::RefreshCacheItems();
+
+	REFLEX = new InputHandler_Reflex;
 
 	// Run the main loop.
 	GameLoop::RunGameLoop();
