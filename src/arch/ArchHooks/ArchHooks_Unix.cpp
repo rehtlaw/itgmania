@@ -128,7 +128,7 @@ namespace
 	void OpenGetTime()
 	{
 		static bool bInitialized = false;
-		
+
 		if( bInitialized )
 			return;
 		bInitialized = true;
@@ -408,8 +408,13 @@ void ArchHooks::MountUserFilesystems( const RString &sDirOfExecutable )
 	/* Path to write general mutable user data when not Portable
 	 * Lowercase the PRODUCT_ID; dotfiles and directories are almost always lowercase.
 	 */
-	const char *szHome = getenv( "HOME" );
-	RString sUserDataPath = ssprintf( "%s/.%s", szHome? szHome:".", "itgmania" );
+	#ifdef IS_FLATPAK
+		const char *szHome = getenv( "XDG_DATA_HOME" );
+		RString sUserDataPath = ssprintf( "%s/%s", szHome? szHome:".", "itgmania" );
+	#else
+		const char *szHome = getenv( "HOME" );
+		RString sUserDataPath = ssprintf( "%s/.%s", szHome? szHome:".", "itgmania" );
+	#endif
 	FILEMAN->Mount( "dir", sUserDataPath + "/Announcers", "/Announcers" );
 	FILEMAN->Mount( "dir", sUserDataPath + "/BGAnimations", "/BGAnimations" );
 	FILEMAN->Mount( "dir", sUserDataPath + "/BackgroundEffects", "/BackgroundEffects" );

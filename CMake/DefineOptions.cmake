@@ -61,6 +61,8 @@ if(LINUX)
   option(WITH_XRANDR "Build with Xrandr support" ON)
   option(WITH_LIBXTST "Build with libXtst support" ON)
   option(WITH_X11 "Build with X11 support" ON)
+  # right now this just changes the path of the user dir
+  option(IS_FLATPAK "Build with Flatpak fixes." OFF)
 endif()
 
 option(WITH_MINIMAID "Build with Minimaid support." ON)

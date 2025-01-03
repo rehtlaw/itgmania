@@ -438,6 +438,10 @@ else() # Unix / Linux TODO: Remember to find and locate the zip archive files.
     list(APPEND SMDATA_LINK_LIB ${LIBXTST_LIBRARY})
   endif()
 
+  if(IS_FLATPAK)
+    add_definitions(-DIS_FLATPAK)
+  endif()
+
   list(APPEND SMDATA_LINK_LIB ${LIBUSB_LIBRARY})
 
   list(APPEND SMDATA_LINK_LIB ${XRANDR_LIBRARIES} ${XINERAMA_LIBRARIES})
