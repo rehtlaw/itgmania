@@ -1,10 +1,3 @@
-if(CMAKE_GENERATOR MATCHES "Ninja")
-  message(
-    FATAL_ERROR
-      "You cannot use the Ninja generator when building the bundled ffmpeg library."
-    )
-endif()
-
 set(SM_FFMPEG_SRC_DIR "${SM_EXTERN_DIR}/ffmpeg")
 set(SM_FFMPEG_CONFIGURE_EXE "${SM_FFMPEG_SRC_DIR}/configure")
 
