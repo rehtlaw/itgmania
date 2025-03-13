@@ -843,18 +843,13 @@ void NoteField::DrawPrimitives()
 				bool bMeasureBar = iBeatBarsDrawn % iMeasureBarFrequency == 0;
 				BeatBarType type = quarter_beat;
 				if( bMeasureBar )
-				  type = measure;
-			  else if( iBeatBarsDrawn % 4 == 0 )
-				  type = beat;
+					type = measure;
+				else if( iBeatBarsDrawn % 4 == 0 )
+					type = beat;
 				else if( iBeatBarsDrawn % 2 == 0 )
 					type = half_beat;
 				float fBeat = NoteRowToBeat(j);
 
-				if( type == quarter_beat || type == half_beat) {
-					iBeatBarsDrawn++;
-					continue;
-				}
-			
 				if( IS_ON_SCREEN(fBeat) )
 				{
 					DrawBeatBar( fBeat, type, iMeasureIndex );
