@@ -24,8 +24,7 @@ list(APPEND SMDATA_GLOBAL_SINGLETON_SRC
             "StatsManager.cpp"
             "ThemeManager.cpp"
             "UnlockManager.cpp"
-            "arch/InputHandler/InputHandler_Reflex.cpp"
-            "arch/InputHandler/hidapi.c")
+            "arch/InputHandler/InputHandler_Reflex.cpp")
 list(APPEND SMDATA_GLOBAL_SINGLETON_HPP
             "AnnouncerManager.h"
             "Bookkeeper.h"
@@ -52,8 +51,7 @@ list(APPEND SMDATA_GLOBAL_SINGLETON_HPP
             "StatsManager.h"
             "ThemeManager.h"
             "UnlockManager.h"
-            "arch/InputHandler/InputHandler_Reflex.h"
-            "arch/InputHandler/hidapi.h")
+            "arch/InputHandler/InputHandler_Reflex.h")
 
 source_group("Global Singletons"
              FILES
