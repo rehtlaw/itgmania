@@ -5,6 +5,8 @@ include(${CMAKE_CURRENT_LIST_DIR}/CMake/CMakeMacros.cmake)
 # Make Xcode's 'Archive' build work
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/extern")
 
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
 # Set up helper variables for future configuring.
 set(SM_CMAKE_DIR "${CMAKE_CURRENT_LIST_DIR}/CMake")
 set(SM_EXTERN_DIR "${CMAKE_CURRENT_LIST_DIR}/extern")
