@@ -3,6 +3,7 @@
 #include "PrefsManager.h"
 #include "arch/ArchHooks/ArchHooks.h"
 #include "InputEventPlus.h"
+#include "RageUtil/LanguageInfo.h"
 
 #include <vector>
 

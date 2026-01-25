@@ -17,6 +17,7 @@
 #include "LocalizedString.h"
 #include "SpecialFiles.h"
 #include "RageLog.h"
+#include "RageUtil/LanguageInfo.h"
 
 #include <vector>
 
@@ -976,7 +977,7 @@ ConfOption *ConfOption::Find( RString name )
 	{
 		ConfOption *opt = &g_ConfOptions[i];
 		RString match(opt->name);
-		if( match.CompareNoCase(name) )
+		if( CompareNoCase(match, name) )
 			continue;
 		return opt;
 	}

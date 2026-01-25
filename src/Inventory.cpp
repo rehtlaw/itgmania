@@ -10,6 +10,7 @@
 #include "StatsManager.h"
 #include "ThemeMetric.h"
 #include "PlayerState.h"
+#include "RageUtil/RandomNumbers.h"
 
 #include <vector>
 

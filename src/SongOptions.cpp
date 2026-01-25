@@ -1,6 +1,7 @@
 #include "global.h"
 #include "SongOptions.h"
 #include "RageUtil.h"
+#include "RageUtil/Regex.h"
 #include "GameState.h"
 #include "CommonMetrics.h"
 
@@ -141,7 +142,7 @@ void SongOptions::FromString( const RString &sMultipleMods )
 bool SongOptions::FromOneModString( const RString &sOneMod, RString &sErrorOut )
 {
 	RString sBit = sOneMod;
-	sBit.MakeLower();
+	MakeLower(sBit);
 	Trim( sBit );
 
 	Regex mult("^([0-9]+(\\.[0-9]+)?)xmusic$");

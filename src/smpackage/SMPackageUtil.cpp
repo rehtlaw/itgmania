@@ -9,6 +9,7 @@
 #include "resource.h"
 #include "LocalizedString.h"
 #include "arch/Dialog/Dialog.h"
+#include "RageUtil/LanguageInfo.h"
 
 #include <cstddef>
 #include <vector>

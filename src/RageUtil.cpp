@@ -8,10 +8,12 @@
 #include "LocalizedString.h"
 #include "LuaBinding.h"
 #include "LuaManager.h"
+#include "RageUtil/Regex.h"
 
 #include <json/json.h>
 #include <pcre.h>
 
+#include <atomic>
 #include <cfloat>
 #include <cinttypes>
 #include <cmath>
@@ -34,75 +36,6 @@ const RString CUSTOM_SONG_PATH= "/@mem/";
 bool HexToBinary(const RString&, RString&);
 void utf8_sanitize(RString &);
 void UnicodeUpperLower(wchar_t *, size_t, const unsigned char *);
-
-RandomGen g_RandomNumberGenerator;
-
-/* Extend MersenneTwister into Lua space. This is intended to replace
- * math.randomseed and math.random, so we conform to their behavior. */
-
-namespace
-{
-	MersenneTwister g_LuaPRNG;
-
-	/* To map from [0..2^31-1] to [0..1), we divide by 2^31. */
-	const double DIVISOR = std::pow( double(2), double(31) );
-
-	static int Seed( lua_State *L )
-	{
-		g_LuaPRNG = MersenneTwister( IArg(1) );
-		return 0;
-	}
-
-	static int Random( lua_State *L )
-	{
-		switch( lua_gettop(L) )
-		{
-			/* [0..1) */
-			case 0:
-			{
-				std::uniform_real_distribution<> dist( 0, 1 );
-				double r = dist( g_LuaPRNG );
-				lua_pushnumber( L, r );
-				return 1;
-			}
-
-			/* [1..u] */
-			case 1:
-			{
-				int upper = IArg(1);
-				luaL_argcheck( L, 1 <= upper, 1, "interval is empty" );
-				std::uniform_int_distribution<> dist( 1, upper );
-				lua_pushnumber( L, dist( g_LuaPRNG ) );
-				return 1;
-			}
-			/* [l..u] */
-			case 2:
-			{
-				int lower = IArg(1);
-				int upper = IArg(2);
-				luaL_argcheck( L, lower < upper, 2, "interval is empty" );
-				std::uniform_int_distribution<> dist( lower, upper );
-				lua_pushnumber( L, dist( g_LuaPRNG ) );
-				return 1;
-			}
-
-			/* wrong amount of arguments */
-			default:
-			{
-				return luaL_error( L, "wrong number of arguments" );
-			}
-		}
-	}
-
-	const luaL_Reg MersenneTwisterTable[] =
-	{
-		LIST_METHOD( Seed ),
-		LIST_METHOD( Random ),
-		{ nullptr, nullptr }
-	};
-}
-
-LUA_REGISTER_NAMESPACE( MersenneTwister );
 
 void fapproach( float& val, float other_val, float to_move )
 {
@@ -412,169 +345,6 @@ RString vssprintf( const char *szFormat, va_list argList )
 	return sRet;
 }
 
-/* ISO-639-1 codes: http://www.loc.gov/standards/iso639-2/php/code_list.php
- * We don't use 3-letter codes, so we don't bother supporting them. */
-static const LanguageInfo g_langs[] =
-{
-	{"aa", "Afar"},
-	{"ab", "Abkhazian"},
-	{"af", "Afrikaans"},
-	{"am", "Amharic"},
-	{"ar", "Arabic"},
-	{"as", "Assamese"},
-	{"ay", "Aymara"},
-	{"az", "Azerbaijani"},
-	{"ba", "Bashkir"},
-	{"be", "Byelorussian"},
-	{"bg", "Bulgarian"},
-	{"bh", "Bihari"},
-	{"bi", "Bislama"},
-	{"bn", "Bengali"},
-	{"bo", "Tibetan"},
-	{"br", "Breton"},
-	{"ca", "Catalan"},
-	{"co", "Corsican"},
-	{"cs", "Czech"},
-	{"cy", "Welsh"},
-	{"da", "Danish"},
-	{"de", "German"},
-	{"dz", "Bhutani"},
-	{"el", "Greek"},
-	{"en", "English"},
-	{"eo", "Esperanto"},
-	{"es", "Spanish"},
-	{"et", "Estonian"},
-	{"eu", "Basque"},
-	{"fa", "Persian"},
-	{"fi", "Finnish"},
-	{"fj", "Fiji"},
-	{"fo", "Faeroese"},
-	{"fr", "French"},
-	{"fy", "Frisian"},
-	{"ga", "Irish"},
-	{"gd", "Gaelic"},
-	{"gl", "Galician"},
-	{"gn", "Guarani"},
-	{"gu", "Gujarati"},
-	{"ha", "Hausa"},
-	{"he", "Hebrew"},
-	{"hi", "Hindi"},
-	{"hr", "Croatian"},
-	{"hu", "Hungarian"},
-	{"hy", "Armenian"},
-	{"ia", "Interlingua"},
-	{"id", "Indonesian"},
-	{"ie", "Interlingue"},
-	{"ik", "Inupiak"},
-	{"in", "Indonesian"}, // compatibility
-	{"is", "Icelandic"},
-	{"it", "Italian"},
-	{"iw", "Hebrew"}, // compatibility
-	{"ja", "Japanese"},
-	{"ji", "Yiddish"}, // compatibility
-	{"jw", "Javanese"},
-	{"ka", "Georgian"},
-	{"kk", "Kazakh"},
-	{"kl", "Greenlandic"},
-	{"km", "Cambodian"},
-	{"kn", "Kannada"},
-	{"ko", "Korean"},
-	{"ks", "Kashmiri"},
-	{"ku", "Kurdish"},
-	{"ky", "Kirghiz"},
-	{"la", "Latin"},
-	{"ln", "Lingala"},
-	{"lo", "Laothian"},
-	{"lt", "Lithuanian"},
-	{"lv", "Latvian"},
-	{"mg", "Malagasy"},
-	{"mi", "Maori"},
-	{"mk", "Macedonian"},
-	{"ml", "Malayalam"},
-	{"mn", "Mongolian"},
-	{"mo", "Moldavian"},
-	{"mr", "Marathi"},
-	{"ms", "Malay"},
-	{"mt", "Maltese"},
-	{"my", "Burmese"},
-	{"na", "Nauru"},
-	{"ne", "Nepali"},
-	{"nl", "Dutch"},
-	{"no", "Norwegian"},
-	{"oc", "Occitan"},
-	{"om", "Oromo"},
-	{"or", "Oriya"},
-	{"pa", "Punjabi"},
-	{"pl", "Polish"},
-	{"ps", "Pashto"},
-	{"pt", "Portuguese"},
-	{"qu", "Quechua"},
-	{"rm", "Rhaeto-Romance"},
-	{"rn", "Kirundi"},
-	{"ro", "Romanian"},
-	{"ru", "Russian"},
-	{"rw", "Kinyarwanda"},
-	{"sa", "Sanskrit"},
-	{"sd", "Sindhi"},
-	{"sg", "Sangro"},
-	{"sh", "Serbo-Croatian"},
-	{"si", "Singhalese"},
-	{"sk", "Slovak"},
-	{"sl", "Slovenian"},
-	{"sm", "Samoan"},
-	{"sn", "Shona"},
-	{"so", "Somali"},
-	{"sq", "Albanian"},
-	{"sr", "Serbian"},
-	{"ss", "Siswati"},
-	{"st", "Sesotho"},
-	{"su", "Sudanese"},
-	{"sv", "Swedish"},
-	{"sw", "Swahili"},
-	{"ta", "Tamil"},
-	{"te", "Tegulu"},
-	{"tg", "Tajik"},
-	{"th", "Thai"},
-	{"ti", "Tigrinya"},
-	{"tk", "Turkmen"},
-	{"tl", "Tagalog"},
-	{"tn", "Setswana"},
-	{"to", "Tonga"},
-	{"tr", "Turkish"},
-	{"ts", "Tsonga"},
-	{"tt", "Tatar"},
-	{"tw", "Twi"},
-	{"uk", "Ukrainian"},
-	{"ur", "Urdu"},
-	{"uz", "Uzbek"},
-	{"vi", "Vietnamese"},
-	{"vo", "Volapuk"},
-	{"wo", "Wolof"},
-	{"xh", "Xhosa"},
-	{"yi", "Yiddish"},
-	{"yo", "Yoruba"},
-	{"zh-Hans", "Chinese (Simplified)"},
-	{"zh-Hant", "Chinese (Traditional)"},
-	{"zu", "Zulu"},
-};
-
-void GetLanguageInfos( std::vector<const LanguageInfo*> &vAddTo )
-{
-	for( unsigned i=0; i<ARRAYLEN(g_langs); ++i )
-		vAddTo.push_back( &g_langs[i] );
-}
-
-const LanguageInfo *GetLanguageInfo( const RString &sIsoCode )
-{
-	for( unsigned i=0; i<ARRAYLEN(g_langs); ++i )
-	{
-		if( sIsoCode.EqualsNoCase(g_langs[i].szIsoCode) )
-			return &g_langs[i];
-	}
-
-	return nullptr;
-}
-
 RString join( const RString &sDeliminator, const std::vector<RString> &sSource)
 {
 	if( sSource.empty() )
@@ -695,9 +465,9 @@ std::vector<RString> SmEscape(const std::vector<RString> &vUnescaped, const std:
 RString SmUnescape( const RString &sEscaped )
 {
 	RString unescaped = sEscaped;
-	unescaped.Replace("\\\\", "||escaped-backslash||");
-	unescaped.Replace("\\", "");
-	unescaped.Replace("||escaped-backslash||", "\\");
+	Replace(unescaped, "\\\\", "||escaped-backslash||");
+	Replace(unescaped, "\\", "");
+	Replace(unescaped, "||escaped-backslash||", "\\");
 	return unescaped;
 }
 
@@ -976,7 +746,7 @@ bool FindFirstFilenameContaining(const std::vector<RString>& filenames,
 	for(size_t i= 0; i < filenames.size(); ++i)
 	{
 		RString lower= GetFileNameWithoutExtension(filenames[i]);
-		lower.MakeLower();
+		MakeLower(lower);
 		for(size_t s= 0; s < starts_with.size(); ++s)
 		{
 			if(!lower.compare(0, starts_with[s].size(), starts_with[s]))
@@ -1040,7 +810,7 @@ bool GetCommandlineArgument( const RString &option, RString *argument, int iInde
 
 		const size_t i = CurArgument.find( "=" );
 		RString CurOption = CurArgument.substr(0,i);
-		if( CurOption.CompareNoCase(optstr) )
+		if( CompareNoCase(CurOption, optstr) )
 			continue; // no match
 
 		// Found it.
@@ -1081,10 +851,9 @@ RString GetCwd()
 void CRC32( unsigned int &iCRC, const void *pVoidBuffer, size_t iSize )
 {
 	static unsigned tab[256];
-	static bool initted = false;
-	if( !initted )
+	static std::atomic<bool> initted = false;
+	if( !initted.load(std::memory_order_acquire) )
 	{
-		initted = true;
 		const unsigned POLY = 0xEDB88320;
 
 		for( int i = 0; i < 256; ++i )
@@ -1098,6 +867,7 @@ void CRC32( unsigned int &iCRC, const void *pVoidBuffer, size_t iSize )
 					tab[i] >>= 1;
 			}
 		}
+		initted.store(true, std::memory_order_release);
 	}
 
 	iCRC ^= 0xFFFFFFFF;
@@ -1131,12 +901,12 @@ bool DirectoryIsEmpty( const RString &sDir )
 
 bool CompareRStringsAsc( const RString &sStr1, const RString &sStr2 )
 {
-	return sStr1.CompareNoCase( sStr2 ) < 0;
+	return CompareNoCase(sStr1, sStr2) < 0;
 }
 
 bool CompareRStringsDesc( const RString &sStr1, const RString &sStr2 )
 {
-	return sStr1.CompareNoCase( sStr2 ) > 0;
+	return CompareNoCase(sStr1, sStr2) > 0;
 }
 
 void SortRStringArray( std::vector<RString> &arrayRStrings, const bool bSortAscending )
@@ -1292,9 +1062,9 @@ RString URLEncode( const RString &sStr )
 // remove various version control-related files
 static bool CVSOrSVN( const RString& s )
 {
-	return s.Right(3).EqualsNoCase("CVS") ||
-			s.Right(4) == ".svn" ||
-			s.Right(3).EqualsNoCase(".hg");
+	return EqualsNoCase(Right(s, 3), "CVS") ||
+			Right(s, 4) == ".svn" ||
+			EqualsNoCase(Right(s, 3), ".hg");
 }
 
 void StripCvsAndSvn( std::vector<RString> &vs )
@@ -1304,7 +1074,7 @@ void StripCvsAndSvn( std::vector<RString> &vs )
 
 static bool MacResourceFork( const RString& s )
 {
-	return s.Left(2).EqualsNoCase("._");
+	return EqualsNoCase(Left(s, 2), "._");
 }
 
 void StripMacResourceForks( std::vector<RString> &vs )
@@ -1395,115 +1165,6 @@ bool GetFileContents( const RString &sFile, std::vector<RString> &asOut )
 	RString sLine;
 	while( file.GetLine(sLine) )
 		asOut.push_back( sLine );
-	return true;
-}
-
-void Regex::Compile()
-{
-	const char *error;
-	int offset;
-	m_pReg = pcre_compile( m_sPattern.c_str(), PCRE_CASELESS, &error, &offset, nullptr );
-
-	if( m_pReg == nullptr )
-		RageException::Throw( "Invalid regex: \"%s\" (%s).", m_sPattern.c_str(), error );
-
-	int iRet = pcre_fullinfo( (pcre *) m_pReg, nullptr, PCRE_INFO_CAPTURECOUNT, &m_iBackrefs );
-	ASSERT( iRet >= 0 );
-
-	++m_iBackrefs;
-	ASSERT( m_iBackrefs < 128 );
-}
-
-void Regex::Set( const RString &sStr )
-{
-	Release();
-	m_sPattern = sStr;
-	Compile();
-}
-
-void Regex::Release()
-{
-	pcre_free( m_pReg );
-	m_pReg = nullptr;
-	m_sPattern = RString();
-}
-
-Regex::Regex( const RString &sStr ): m_pReg(nullptr), m_iBackrefs(0), m_sPattern(RString())
-{
-	Set( sStr );
-}
-
-Regex::Regex( const Regex &rhs ): m_pReg(nullptr), m_iBackrefs(0), m_sPattern(RString())
-{
-	Set( rhs.m_sPattern );
-}
-
-Regex &Regex::operator=( const Regex &rhs )
-{
-	if( this != &rhs )
-		Set( rhs.m_sPattern );
-	return *this;
-}
-
-Regex::~Regex()
-{
-	Release();
-}
-
-bool Regex::Compare( const RString &sStr )
-{
-	int iMat[128*3];
-	int iRet = pcre_exec( (pcre *) m_pReg, nullptr, sStr.data(), sStr.size(), 0, 0, iMat, 128*3 );
-
-	if( iRet < -1 )
-		RageException::Throw( "Unexpected return from pcre_exec('%s'): %i.", m_sPattern.c_str(), iRet );
-
-	return iRet >= 0;
-}
-
-bool Regex::Compare( const RString &sStr, std::vector<RString> &asMatches )
-{
-	asMatches.clear();
-
-	int iMat[128*3];
-	int iRet = pcre_exec( (pcre *) m_pReg, nullptr, sStr.data(), sStr.size(), 0, 0, iMat, 128*3 );
-
-	if( iRet < -1 )
-		RageException::Throw( "Unexpected return from pcre_exec('%s'): %i.", m_sPattern.c_str(), iRet );
-
-	if( iRet == -1 )
-		return false;
-
-	for( unsigned i = 1; i < m_iBackrefs; ++i )
-	{
-		const int iStart = iMat[i*2], end = iMat[i*2+1];
-		if( iStart == -1 )
-			asMatches.push_back( RString() ); /* no match */
-		else
-			asMatches.push_back( sStr.substr(iStart, end - iStart) );
-	}
-
-	return true;
-}
-
-// Arguments and behavior are the same are similar to
-// http://us3.php.net/manual/en/function.preg-replace.php
-bool Regex::Replace( const RString &sReplacement, const RString &sSubject, RString &sOut )
-{
-	std::vector<RString> asMatches;
-	if( !Compare(sSubject, asMatches) )
-		return false;
-
-	sOut = sReplacement;
-
-	// TODO: optimize me by iterating only once over the string
-	for( unsigned i=0; i<asMatches.size(); i++ )
-	{
-		RString sFrom = ssprintf( "\\${%d}", i );
-		RString sTo = asMatches[i];
-		sOut.Replace(sFrom, sTo);
-	}
-
 	return true;
 }
 
@@ -1961,7 +1622,7 @@ void ReplaceEntityText( RString &sText, const std::map<RString, RString> &m )
 		}
 
 		RString sElement = sText.substr( iStart+1, iEnd-iStart-1 );
-		sElement.MakeLower();
+		MakeLower(sElement);
 
 		std::map<RString, RString>::const_iterator it = m.find( sElement );
 		if( it == m.end() )
@@ -2331,7 +1992,7 @@ namespace StringConversion
 
 bool FileCopy( const RString &sSrcFile, const RString &sDstFile )
 {
-	if( !sSrcFile.CompareNoCase(sDstFile) )
+	if( !CompareNoCase(sSrcFile, sDstFile) )
 	{
 		LOG->Warn( "Tried to copy \"%s\" over itself", sSrcFile.c_str() );
 		return false;
@@ -2407,9 +2068,7 @@ LuaFunction( SecondsToMSS, SecondsToMSS( FArg(1) ) )
 LuaFunction( SecondsToMMSS, SecondsToMMSS( FArg(1) ) )
 LuaFunction( FormatNumberAndSuffix, FormatNumberAndSuffix( IArg(1) ) )
 LuaFunction( Basename, Basename( SArg(1) ) )
-static RString MakeLower( RString s ) { s.MakeLower(); return s; }
 LuaFunction( Lowercase, MakeLower( SArg(1) ) )
-static RString MakeUpper( RString s ) { s.MakeUpper(); return s; }
 LuaFunction( Uppercase, MakeUpper( SArg(1) ) )
 LuaFunction( mbstrlen, (int)RStringToWstring(SArg(1)).length() )
 LuaFunction( URLEncode, URLEncode( SArg(1) ) );

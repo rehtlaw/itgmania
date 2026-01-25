@@ -16,6 +16,7 @@ using namespace RageDisplay_Legacy_Helpers;
 #include "EnumHelper.h"
 #include "DisplaySpec.h"
 #include "LocalizedString.h"
+#include "RageUtil/Endian.h"
 
 #include "arch/LowLevelWindow/LowLevelWindow.h"
 
@@ -825,10 +826,22 @@ RString RageDisplay_Legacy::TryVideoMode( const VideoModeParams &p, bool &bNewDe
 	return RString();	// successfully set mode
 }
 
+// https://stackoverflow.com/q/6594214
+// Since glGetIntegerv won't initialize the variable if it fails, account for failure.
+// We initialize it to -1, so we know if it failed. Failure here is extremely uncommon,
+// but was first reported on a setup using an AMD RX 6600 series GPU & late 2024 driver.
 int RageDisplay_Legacy::GetMaxTextureSize() const
 {
-	GLint size;
+	GLint size = -1;
 	glGetIntegerv( GL_MAX_TEXTURE_SIZE, &size );
+
+	if( size <= 0 )
+	{
+		LOG->Warn("RageDisplay_Legacy::GetMaxTextureSize: glGetIntegerv %s %d", 
+		          ( size == -1 ) ? "failed" : "returned invalid value", size);
+		return 2048;
+	}
+	
 	return size;
 }
 

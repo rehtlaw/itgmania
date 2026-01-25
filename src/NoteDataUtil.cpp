@@ -9,6 +9,7 @@
 #include "GameState.h"
 #include "RadarValues.h"
 #include "TimingData.h"
+#include "RageUtil/RandomNumbers.h"
 
 #include <cmath>
 #include <cstddef>

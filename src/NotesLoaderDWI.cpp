@@ -19,8 +19,6 @@
 
 Difficulty DwiCompatibleStringToDifficulty( const RString& sDC );
 
-static std::map<int,int> g_mapDanceNoteToNoteDataColumn;
-
 /** @brief The different types of core DWI arrows and pads. */
 enum DanceNotes
 {
@@ -102,18 +100,18 @@ static void DWIcharToNote( char c, GameController i, int &note1Out, int &note2Ou
  * @param col2Out The second result based on the character.
  * @param sPath the path to the file.
  */
-static void DWIcharToNoteCol( char c, GameController i, int &col1Out, int &col2Out, const RString &sPath )
+static void DWIcharToNoteCol( char c, GameController i, int &col1Out, int &col2Out, const RString &sPath, const std::map<int,int> &mapDanceNoteToNoteDataColumn )
 {
 	int note1, note2;
 	DWIcharToNote( c, i, note1, note2, sPath );
 
 	if( note1 != DANCE_NOTE_NONE )
-		col1Out = g_mapDanceNoteToNoteDataColumn[note1];
+		col1Out = mapDanceNoteToNoteDataColumn.at(note1);
 	else
 		col1Out = -1;
 
 	if( note2 != DANCE_NOTE_NONE )
-		col2Out = g_mapDanceNoteToNoteDataColumn[note2];
+		col2Out = mapDanceNoteToNoteDataColumn.at(note2);
 	else
 		col2Out = -1;
 }
@@ -151,7 +149,7 @@ const int BEATS_PER_MEASURE = 4;
 Difficulty DwiCompatibleStringToDifficulty( const RString& sDC )
 {
 	RString s2 = sDC;
-	s2.MakeLower();
+	MakeLower(s2);
 	if( s2 == "beginner" )			return Difficulty_Beginner;
 	else if( s2 == "easy" )		return Difficulty_Easy;
 	else if( s2 == "basic" )		return Difficulty_Easy;
@@ -188,7 +186,7 @@ static StepsType GetTypeFromMode(const RString &mode)
 }
 
 static NoteData ParseNoteData(RString &step1, RString &step2,
-			      Steps &out, const RString &path)
+	Steps &out, const RString &path )
 {
 	if (step1.size() < 2 && step2.size() < 2)
 	{
@@ -196,39 +194,40 @@ static NoteData ParseNoteData(RString &step1, RString &step2,
 		// Handle the error by returning an empty NoteData object
 		return NoteData();
 	}
-	g_mapDanceNoteToNoteDataColumn.clear();
+
+	std::map<int, int> mapDanceNoteToNoteDataColumn;
 	switch( out.m_StepsType )
 	{
 		case StepsType_dance_single:
-			g_mapDanceNoteToNoteDataColumn[DANCE_NOTE_PAD1_LEFT] = 0;
-			g_mapDanceNoteToNoteDataColumn[DANCE_NOTE_PAD1_DOWN] = 1;
-			g_mapDanceNoteToNoteDataColumn[DANCE_NOTE_PAD1_UP] = 2;
-			g_mapDanceNoteToNoteDataColumn[DANCE_NOTE_PAD1_RIGHT] = 3;
+			mapDanceNoteToNoteDataColumn[DANCE_NOTE_PAD1_LEFT] = 0;
+			mapDanceNoteToNoteDataColumn[DANCE_NOTE_PAD1_DOWN] = 1;
+			mapDanceNoteToNoteDataColumn[DANCE_NOTE_PAD1_UP] = 2;
+			mapDanceNoteToNoteDataColumn[DANCE_NOTE_PAD1_RIGHT] = 3;
 			break;
 		case StepsType_dance_double:
 		case StepsType_dance_couple:
-			g_mapDanceNoteToNoteDataColumn[DANCE_NOTE_PAD1_LEFT] = 0;
-			g_mapDanceNoteToNoteDataColumn[DANCE_NOTE_PAD1_DOWN] = 1;
-			g_mapDanceNoteToNoteDataColumn[DANCE_NOTE_PAD1_UP] = 2;
-			g_mapDanceNoteToNoteDataColumn[DANCE_NOTE_PAD1_RIGHT] = 3;
-			g_mapDanceNoteToNoteDataColumn[DANCE_NOTE_PAD2_LEFT] = 4;
-			g_mapDanceNoteToNoteDataColumn[DANCE_NOTE_PAD2_DOWN] = 5;
-			g_mapDanceNoteToNoteDataColumn[DANCE_NOTE_PAD2_UP] = 6;
-			g_mapDanceNoteToNoteDataColumn[DANCE_NOTE_PAD2_RIGHT] = 7;
+			mapDanceNoteToNoteDataColumn[DANCE_NOTE_PAD1_LEFT] = 0;
+			mapDanceNoteToNoteDataColumn[DANCE_NOTE_PAD1_DOWN] = 1;
+			mapDanceNoteToNoteDataColumn[DANCE_NOTE_PAD1_UP] = 2;
+			mapDanceNoteToNoteDataColumn[DANCE_NOTE_PAD1_RIGHT] = 3;
+			mapDanceNoteToNoteDataColumn[DANCE_NOTE_PAD2_LEFT] = 4;
+			mapDanceNoteToNoteDataColumn[DANCE_NOTE_PAD2_DOWN] = 5;
+			mapDanceNoteToNoteDataColumn[DANCE_NOTE_PAD2_UP] = 6;
+			mapDanceNoteToNoteDataColumn[DANCE_NOTE_PAD2_RIGHT] = 7;
 			break;
 		case StepsType_dance_solo:
-			g_mapDanceNoteToNoteDataColumn[DANCE_NOTE_PAD1_LEFT] = 0;
-			g_mapDanceNoteToNoteDataColumn[DANCE_NOTE_PAD1_UPLEFT] = 1;
-			g_mapDanceNoteToNoteDataColumn[DANCE_NOTE_PAD1_DOWN] = 2;
-			g_mapDanceNoteToNoteDataColumn[DANCE_NOTE_PAD1_UP] = 3;
-			g_mapDanceNoteToNoteDataColumn[DANCE_NOTE_PAD1_UPRIGHT] = 4;
-			g_mapDanceNoteToNoteDataColumn[DANCE_NOTE_PAD1_RIGHT] = 5;
+			mapDanceNoteToNoteDataColumn[DANCE_NOTE_PAD1_LEFT] = 0;
+			mapDanceNoteToNoteDataColumn[DANCE_NOTE_PAD1_UPLEFT] = 1;
+			mapDanceNoteToNoteDataColumn[DANCE_NOTE_PAD1_DOWN] = 2;
+			mapDanceNoteToNoteDataColumn[DANCE_NOTE_PAD1_UP] = 3;
+			mapDanceNoteToNoteDataColumn[DANCE_NOTE_PAD1_UPRIGHT] = 4;
+			mapDanceNoteToNoteDataColumn[DANCE_NOTE_PAD1_RIGHT] = 5;
 			break;
 			DEFAULT_FAIL( out.m_StepsType );
 	}
 
 	NoteData newNoteData;
-	newNoteData.SetNumTracks( g_mapDanceNoteToNoteDataColumn.size() );
+	newNoteData.SetNumTracks( mapDanceNoteToNoteDataColumn.size() );
 
 	for( int pad=0; pad<2; pad++ )		// foreach pad
 	{
@@ -246,10 +245,10 @@ static NoteData ParseNoteData(RString &step1, RString &step2,
 				DEFAULT_FAIL( pad );
 		}
 
-		sStepData.Replace("\n", "");
-		sStepData.Replace("\r", "");
-		sStepData.Replace("\t", "");
-		sStepData.Replace(" ", "");
+		Replace(sStepData, "\n", "");
+		Replace(sStepData, "\r", "");
+		Replace(sStepData, "\t", "");
+		Replace(sStepData, " ", "");
 
 		double fCurrentBeat = 0;
 		double fCurrentIncrementer = 1.0/8 * BEATS_PER_MEASURE;
@@ -319,11 +318,12 @@ static NoteData ParseNoteData(RString &step1, RString &step2,
 
 						int iCol1, iCol2;
 						DWIcharToNoteCol(
-								 c,
-								 (GameController)pad,
-								 iCol1,
-								 iCol2,
-								 path );
+								c,
+								(GameController)pad,
+								iCol1,
+								iCol2,
+								path,
+								mapDanceNoteToNoteDataColumn);
 
 						if( iCol1 != -1 )
 							newNoteData.SetTapNote(iCol1,
@@ -347,10 +347,11 @@ static NoteData ParseNoteData(RString &step1, RString &step2,
 							const char holdChar = sStepData[i++];
 
 							DWIcharToNoteCol(holdChar,
-									 (GameController)pad,
-									 iCol1,
-									 iCol2,
-									 path );
+									(GameController)pad,
+									iCol1,
+									iCol2,
+									path,
+									mapDanceNoteToNoteDataColumn);
 
 							if( iCol1 != -1 )
 								newNoteData.SetTapNote(iCol1,
@@ -521,10 +522,10 @@ bool DWILoader::LoadNoteDataFromSimfile( const RString &path, Steps &out )
 		const MsdFile::value_t &params = msd.GetValue(i);
 		RString valueName = params[0];
 
-		if(valueName.EqualsNoCase("SINGLE")  ||
-		   valueName.EqualsNoCase("DOUBLE")  ||
-		   valueName.EqualsNoCase("COUPLE")  ||
-		   valueName.EqualsNoCase("SOLO") )
+		if(EqualsNoCase(valueName, "SINGLE")  ||
+		   EqualsNoCase(valueName, "DOUBLE")  ||
+		   EqualsNoCase(valueName, "COUPLE")  ||
+		   EqualsNoCase(valueName, "SOLO") )
 		{
 			if (out.m_StepsType != GetTypeFromMode(valueName))
 				continue;
@@ -580,10 +581,10 @@ bool DWILoader::LoadFromDir( const RString &sPath_, Song &out, std::set<RString>
 		}
 
 		// handle the data
-		if( sValueName.EqualsNoCase("FILE") )
+		if( EqualsNoCase(sValueName, "FILE") )
 			out.m_sMusicFile = sParams[1];
 
-		else if( sValueName.EqualsNoCase("TITLE") )
+		else if( EqualsNoCase(sValueName, "TITLE") )
 		{
 			NotesLoader::GetMainAndSubTitlesFromFullTitle( sParams[1], out.m_sMainTitle, out.m_sSubTitle );
 
@@ -593,22 +594,22 @@ bool DWILoader::LoadFromDir( const RString &sPath_, Song &out, std::set<RString>
 			ConvertString( out.m_sSubTitle, "utf-8,english" );
 		}
 
-		else if( sValueName.EqualsNoCase("ARTIST") )
+		else if( EqualsNoCase(sValueName, "ARTIST") )
 		{
 			out.m_sArtist = sParams[1];
 			ConvertString( out.m_sArtist, "utf-8,english" );
 		}
 
-		else if( sValueName.EqualsNoCase("GENRE") )
+		else if( EqualsNoCase(sValueName, "GENRE") )
 		{
 			out.m_sGenre = sParams[1];
 			ConvertString( out.m_sGenre, "utf-8,english" );
 		}
 
-		else if( sValueName.EqualsNoCase("CDTITLE") )
+		else if( EqualsNoCase(sValueName, "CDTITLE") )
 			out.m_sCDTitleFile = sParams[1];
 
-		else if( sValueName.EqualsNoCase("BPM") )
+		else if( EqualsNoCase(sValueName, "BPM") )
 		{
 			const float fBPM = StringToFloat( sParams[1] );
 
@@ -622,7 +623,7 @@ bool DWILoader::LoadFromDir( const RString &sPath_, Song &out, std::set<RString>
 				out.m_SongTiming.AddSegment( BPMSegment(0, fBPM) );
 			}
 		}
-		else if( sValueName.EqualsNoCase("DISPLAYBPM") )
+		else if( EqualsNoCase(sValueName, "DISPLAYBPM") )
 		{
 			// #DISPLAYBPM:[xxx..xxx]|[xxx]|[*];
 		    int iMin, iMax;
@@ -646,14 +647,14 @@ bool DWILoader::LoadFromDir( const RString &sPath_, Song &out, std::set<RString>
 			}
 		}
 
-		else if( sValueName.EqualsNoCase("GAP") )
+		else if( EqualsNoCase(sValueName, "GAP") )
 			// the units of GAP is 1/1000 second
 			out.m_SongTiming.m_fBeat0OffsetInSeconds = -StringToInt(sParams[1]) / 1000.0f;
 
-		else if( sValueName.EqualsNoCase("SAMPLESTART") )
+		else if( EqualsNoCase(sValueName, "SAMPLESTART") )
 			out.m_fMusicSampleStartSeconds = ParseBrokenDWITimestamp(sParams[1], sParams[2], sParams[3]);
 
-		else if( sValueName.EqualsNoCase("SAMPLELENGTH") )
+		else if( EqualsNoCase(sValueName, "SAMPLELENGTH") )
 		{
 			float sampleLength = ParseBrokenDWITimestamp(sParams[1], sParams[2], sParams[3]);
 			if (sampleLength > 0 && sampleLength < 1) {
@@ -664,7 +665,7 @@ bool DWILoader::LoadFromDir( const RString &sPath_, Song &out, std::set<RString>
 
 		}
 
-		else if( sValueName.EqualsNoCase("FREEZE") )
+		else if( EqualsNoCase(sValueName, "FREEZE") )
 		{
 			std::vector<RString> arrayFreezeExpressions;
 			split( sParams[1], ",", arrayFreezeExpressions );
@@ -686,7 +687,7 @@ bool DWILoader::LoadFromDir( const RString &sPath_, Song &out, std::set<RString>
 			}
 		}
 
-		else if( sValueName.EqualsNoCase("CHANGEBPM")  || sValueName.EqualsNoCase("BPMCHANGE") )
+		else if( EqualsNoCase(sValueName, "CHANGEBPM")  || EqualsNoCase(sValueName, "BPMCHANGE") )
 		{
 			std::vector<RString> arrayBPMChangeExpressions;
 			split( sParams[1], ",", arrayBPMChangeExpressions );
@@ -711,10 +712,10 @@ bool DWILoader::LoadFromDir( const RString &sPath_, Song &out, std::set<RString>
 			}
 		}
 
-		else if( sValueName.EqualsNoCase("SINGLE")  ||
-			 sValueName.EqualsNoCase("DOUBLE")  ||
-			 sValueName.EqualsNoCase("COUPLE")  ||
-			 sValueName.EqualsNoCase("SOLO") )
+		else if( EqualsNoCase(sValueName, "SINGLE")  ||
+			 EqualsNoCase(sValueName, "DOUBLE")  ||
+			 EqualsNoCase(sValueName, "COUPLE")  ||
+			 EqualsNoCase(sValueName, "SOLO") )
 		{
 			Steps* pNewNotes = out.CreateSteps();
 			LoadFromDWITokens(
@@ -734,8 +735,8 @@ bool DWILoader::LoadFromDir( const RString &sPath_, Song &out, std::set<RString>
 			else
 				delete pNewNotes;
 		}
-		else if( sValueName.EqualsNoCase("DISPLAYTITLE") ||
-			sValueName.EqualsNoCase("DISPLAYARTIST") )
+		else if( EqualsNoCase(sValueName, "DISPLAYTITLE") ||
+			EqualsNoCase(sValueName, "DISPLAYARTIST") )
 		{
 			/* We don't want to support these tags.  However, we don't want
 			 * to pick up images used here as song images (eg. banners). */
@@ -756,7 +757,7 @@ bool DWILoader::LoadFromDir( const RString &sPath_, Song &out, std::set<RString>
 
 				pos = endpos + 1;
 
-				sub.MakeLower();
+				MakeLower(sub);
 				BlacklistedImages.insert( sub );
 			}
 		}

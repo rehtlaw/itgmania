@@ -61,6 +61,7 @@
 #include "Profile.h" // for replay data stuff
 #include "RageDisplay.h"
 #include "GameplayHelpers.h"
+#include "RageUtil/Regex.h"
 
 #include <cmath>
 #include <cstddef>
@@ -1365,7 +1366,7 @@ void ScreenGameplay::LoadLights()
 	Difficulty d1 = Difficulty_Invalid;
 	if( asDifficulties.size() > 0 )
 	{
-		if( asDifficulties[0].CompareNoCase("selected") == 0 )
+		if( CompareNoCase(asDifficulties[0], "selected") == 0 )
 		{
 			// Base lights off current difficulty of active player
 			// Can be either P1 or P2 if they're individual or P1 if both are active

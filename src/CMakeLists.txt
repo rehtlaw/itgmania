@@ -6,6 +6,10 @@ if(MSVC)
   endif()
 endif()
 
+if(CMAKE_GENERATOR STREQUAL "Xcode")
+  set(CMAKE_XCODE_GENERATE_SCHEME ON)
+endif()
+
 # Keep the module path local for easier grabbing.
 set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR})
 
@@ -109,6 +113,10 @@ if(WITH_NO_ROLC_TOMCRYPT)
   target_compile_definitions("${SM_EXE_NAME}" PRIVATE LTC_NO_ROLC)
 endif()
 
+if(CMAKE_GENERATOR STREQUAL "Xcode")
+  target_compile_options(mbedcrypto PRIVATE -Wno-shorten-64-to-32)
+endif()
+
 # Compilation flags per project here.
 target_compile_definitions("${SM_EXE_NAME}" PRIVATE $<$<CONFIG:Debug>:DEBUG>)
 target_compile_definitions("${SM_EXE_NAME}" PRIVATE $<$<CONFIG:Release>:RELEASE>)
@@ -191,10 +199,19 @@ if(WIN32)
   endif()
 elseif(APPLE)
   # TODO should we set CRASH_HANDLER and other things like LINUX does below? Why is that logic specfic to LINUX?
-  target_compile_definitions("${SM_EXE_NAME}" PRIVATE BACKTRACE_METHOD_X86_DARWIN)
+  # Use generic Unix backtrace for all Apple architectures
+  target_compile_definitions("${SM_EXE_NAME}" PRIVATE BACKTRACE_METHOD_GENERIC_UNIX)
+  target_compile_definitions("${SM_EXE_NAME}" PRIVATE BACKTRACE_METHOD_TEXT="generic unix backtrace")
   target_compile_definitions("${SM_EXE_NAME}" PRIVATE BACKTRACE_LOOKUP_METHOD_TEXT="dladdr")
   target_compile_definitions("${SM_EXE_NAME}" PRIVATE BACKTRACE_LOOKUP_METHOD_DLADDR)
   target_compile_definitions("${SM_EXE_NAME}" PRIVATE MACOSX)
+  if(CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64")
+    target_compile_definitions("${SM_EXE_NAME}" PRIVATE CPU_X86_64)
+  elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "x86" OR CMAKE_SYSTEM_PROCESSOR MATCHES "i686")
+    target_compile_definitions("${SM_EXE_NAME}" PRIVATE CPU_X86)
+  elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64" OR CMAKE_SYSTEM_PROCESSOR MATCHES "arm64")
+    target_compile_definitions("${SM_EXE_NAME}" PRIVATE CPU_AARCH64)
+  endif()
   set_target_properties(
     "${SM_EXE_NAME}"
     PROPERTIES
@@ -268,6 +285,10 @@ else() # Linux
         target_compile_definitions("${SM_EXE_NAME}" PRIVATE BACKTRACE_METHOD_X86_LINUX)
         target_compile_definitions("${SM_EXE_NAME}" PRIVATE
                                    BACKTRACE_METHOD_TEXT="x86 custom backtrace")
+      elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64")
+        target_compile_definitions("${SM_EXE_NAME}" PRIVATE BACKTRACE_METHOD_GENERIC_UNIX)
+        target_compile_definitions("${SM_EXE_NAME}" PRIVATE
+                                   BACKTRACE_METHOD_TEXT="generic unix backtrace")
       else()
         target_compile_definitions("${SM_EXE_NAME}" PRIVATE
                                    BACKTRACE_METHOD_TEXT="no backtrace")
@@ -323,10 +344,6 @@ endif()
 set_property(TARGET "${SM_EXE_NAME}" PROPERTY FOLDER "Internal Libraries")
 
 list(APPEND SMDATA_LINK_LIB "lua-5.1" "miniz")
-
-if(WITH_MINIMAID)
-  include(../extern/CMakeProject-mmmagic.cmake)
-endif()
 
 list(APPEND SMDATA_LINK_LIB "mad"
                             "pcre"
@@ -503,6 +520,9 @@ if(WIN32)
           DESTINATION "${SM_FULL_INSTALLATION_PATH}")
   install(FILES "${SM_PROGRAM_DIR}/ITGmania.vdi"
           DESTINATION "${SM_FULL_INSTALLATION_PATH}")
+elseif(APPLE)
+  # On macOS, just install the .app bundle - resources are already inside it
+  install(TARGETS "${SM_EXE_NAME}" BUNDLE DESTINATION ".")
 else()
   install(TARGETS "${SM_EXE_NAME}" DESTINATION "${SM_INSTALL_DESTINATION}")
   if(LINUX)
@@ -511,30 +531,22 @@ else()
     install(PROGRAMS "${SM_ROOT_DIR}/Installer/setup.sh" DESTINATION ".")
   endif()
 endif()
-install(DIRECTORY "${SM_ROOT_DIR}/Announcers"
-        DESTINATION "${SM_INSTALL_DESTINATION}")
-install(DIRECTORY "${SM_ROOT_DIR}/BGAnimations"
-        DESTINATION "${SM_INSTALL_DESTINATION}")
-install(DIRECTORY "${SM_ROOT_DIR}/Themes"
-        DESTINATION "${SM_INSTALL_DESTINATION}")
-install(DIRECTORY "${SM_ROOT_DIR}/Characters"
-        DESTINATION "${SM_INSTALL_DESTINATION}")
-install(DIRECTORY "${SM_ROOT_DIR}/Scripts"
-        DESTINATION "${SM_INSTALL_DESTINATION}")
-install(DIRECTORY "${SM_ROOT_DIR}/Courses"
-        DESTINATION "${SM_INSTALL_DESTINATION}")
-install(DIRECTORY "${SM_ROOT_DIR}/BackgroundEffects"
-        DESTINATION "${SM_INSTALL_DESTINATION}")
-install(DIRECTORY "${SM_ROOT_DIR}/Data"
-        DESTINATION "${SM_INSTALL_DESTINATION}")
-install(DIRECTORY "${SM_ROOT_DIR}/BackgroundTransitions"
-        DESTINATION "${SM_INSTALL_DESTINATION}")
-install(DIRECTORY "${SM_ROOT_DIR}/Docs"
-        DESTINATION "${SM_INSTALL_DESTINATION}")
-install(DIRECTORY "${SM_ROOT_DIR}/NoteSkins"
-        DESTINATION "${SM_INSTALL_DESTINATION}")
-install(FILES "${SM_ROOT_DIR}/Songs/instructions.txt"
-        DESTINATION "${SM_INSTALL_DESTINATION}/Songs")
+
+if(NOT APPLE)
+  install(DIRECTORY "${SM_ROOT_DIR}/Announcers" DESTINATION "${SM_INSTALL_DESTINATION}")
+  install(DIRECTORY "${SM_ROOT_DIR}/BGAnimations" DESTINATION "${SM_INSTALL_DESTINATION}")
+  install(DIRECTORY "${SM_ROOT_DIR}/Themes" DESTINATION "${SM_INSTALL_DESTINATION}")
+  install(DIRECTORY "${SM_ROOT_DIR}/Characters" DESTINATION "${SM_INSTALL_DESTINATION}")
+  install(DIRECTORY "${SM_ROOT_DIR}/Scripts" DESTINATION "${SM_INSTALL_DESTINATION}")
+  install(DIRECTORY "${SM_ROOT_DIR}/Courses" DESTINATION "${SM_INSTALL_DESTINATION}")
+  install(DIRECTORY "${SM_ROOT_DIR}/BackgroundEffects" DESTINATION "${SM_INSTALL_DESTINATION}")
+  install(DIRECTORY "${SM_ROOT_DIR}/Data" DESTINATION "${SM_INSTALL_DESTINATION}")
+  install(DIRECTORY "${SM_ROOT_DIR}/BackgroundTransitions" DESTINATION "${SM_INSTALL_DESTINATION}")
+  install(DIRECTORY "${SM_ROOT_DIR}/Docs" DESTINATION "${SM_INSTALL_DESTINATION}")
+  install(DIRECTORY "${SM_ROOT_DIR}/NoteSkins" DESTINATION "${SM_INSTALL_DESTINATION}")
+  install(FILES "${SM_ROOT_DIR}/Songs/instructions.txt"
+          DESTINATION "${SM_INSTALL_DESTINATION}/Songs")
+endif()
 
 if(WITH_CLUB_FANTASTIC)
   # Fetch ClubFantastic packs

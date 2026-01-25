@@ -19,6 +19,7 @@
 #include "PlayerState.h"
 #include "CommonMetrics.h"
 #include "InputEventPlus.h"
+#include "RageUtil/RandomNumbers.h"
 
 #include <cmath>
 

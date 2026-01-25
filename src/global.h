@@ -15,7 +15,7 @@
 /* Platform-specific fixes. */
 #if defined(_WIN32)
 #include "archutils/Win32/arch_setup.h"
-#elif defined(PBBUILD)
+#elif defined(PBBUILD) || defined(MACOSX)
 #include "archutils/Darwin/arch_setup.h"
 #elif defined(UNIX)
 #include "archutils/Unix/arch_setup.h"
@@ -41,16 +41,10 @@
 /** @brief Use RStrings throughout the program. */
 typedef StdString::CStdString RString;
 
-/** @brief RageThreads defines (don't pull in all of RageThreads.h here) */
-namespace Checkpoints
-{
-	void SetCheckpoint( const char *file, int line, const char *message );
-	void SetCheckpoint( const char *file, int line, const RString& message );
-}
-/** @brief Set a checkpoint with no message. */
-#define CHECKPOINT (Checkpoints::SetCheckpoint(__FILE__, __LINE__, nullptr))
-/** @brief Set a checkpoint with a specified message. */
-#define CHECKPOINT_M(m) (Checkpoints::SetCheckpoint(__FILE__, __LINE__, m))
+
+#include "RageThreads.h"
+
+
 
 
 /**
@@ -111,19 +105,6 @@ void ShowWarningOrTrace( const char *file, int line, const char *message, bool b
 #define SM_UNIQUE_NAME(x) SM_UNIQUE_NAME2(x, __LINE__)
 
 #include "RageException.h"
-
-// Call a function every `n` frames.
-// Each call site will get its own counter.
-#include <utility>
-template <typename Func, typename... Args>
-void CallEveryNFrames(int n, Func&& f, Args&&... args) {
-	static int counter = 0;
-	++counter;
-	if (counter == n) {
-		counter = 0;
-		std::forward<Func>(f)(std::forward<Args>(args)...);
-	}
-}
 
 /* Don't include our own headers here, since they tend to change often. */
 

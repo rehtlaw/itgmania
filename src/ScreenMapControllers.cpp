@@ -1,4 +1,5 @@
 #include "global.h"
+#include "PeriodicCaller.h"
 #include "ScreenMapControllers.h"
 #include "ScreenManager.h"
 #include "ScreenPrompt.h"
@@ -823,7 +824,7 @@ void ScreenMapControllers::ActionRow::Load(RString const& scr_name,
 {
 	m_action= action;
 	RString lower_name= name;
-	lower_name.MakeLower();
+	MakeLower(lower_name);
 	// Make the specific actor optional, use a fallback if it doesn't exist.
 	RString path= THEME->GetPathG(scr_name, lower_name, true);
 	if(path.empty())

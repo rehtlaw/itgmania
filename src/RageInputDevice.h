@@ -52,6 +52,7 @@ enum InputDevice
 	DEVICE_MOUSE,
 	DEVICE_PIUIO,
 	DEVICE_REFLEX,
+	DEVICE_PUMPHID,
 	NUM_InputDevice,		// leave this at the end
 	InputDevice_Invalid		// means this is nullptr
 };

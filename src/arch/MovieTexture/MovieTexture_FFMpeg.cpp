@@ -4,8 +4,10 @@
 #include "RageDisplay.h"
 #include "RageLog.h"
 #include "RageUtil.h"
+#include "RageUtil/ConvertValue.h"
 #include "RageFile.h"
 #include "RageSurface.h"
+#include "RageUtil/Endian.h"
 
 #include <cerrno>
 #include <cstddef>
@@ -179,7 +181,7 @@ float MovieDecoder_FFMpeg::GetTimestamp() const
 	}
 
 	std::lock_guard<std::mutex> lock(packet->lock);
-	return packet->frame_timestamp;
+	return packet->frame_timestamp - timestamp_offset_;
 }
 
 bool MovieDecoder_FFMpeg::IsCurrentFrameReady() {
@@ -339,7 +341,7 @@ int MovieDecoder_FFMpeg::DecodePacketToFrame() {
 	if (packet_buffer_.size() > frame_buffer_.size()) {
 		while (!frame->displayed) {
 			// Sleep so the CPU performance stays happy.
-			usleep(1000);  // 1ms
+			std::this_thread::sleep_for(std::chrono::milliseconds(1));
 			if (cancel_) {
 				return -2;
 			}
@@ -414,6 +416,10 @@ int MovieDecoder_FFMpeg::DecodePacketToFrame() {
 			else {
 				packet->frame_timestamp = 0;
 			}
+		}
+		// Some movies start at a non-zero point in time (audio before video?)
+		if (packet_buffer_position_ == 0 && packet->frame_timestamp != 0) {
+			timestamp_offset_ = packet->frame_timestamp;
 		}
 
 		// Length of this frame, only used as a fallback for getting the frame

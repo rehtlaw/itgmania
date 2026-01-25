@@ -29,6 +29,7 @@
 #include "CommonMetrics.h"
 #include "ScoreKeeperNormal.h"
 #include "InputEventPlus.h"
+#include "RageUtil/RandomNumbers.h"
 
 #include <cmath>
 #include <cstddef>

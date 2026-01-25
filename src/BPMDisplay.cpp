@@ -10,6 +10,7 @@
 #include "LocalizedString.h"
 #include "Song.h"
 #include "Steps.h"
+#include "RageUtil/RandomNumbers.h"
 
 #include <cmath>
 #include <climits>

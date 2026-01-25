@@ -10,6 +10,7 @@
 #include "RageSound.h"
 #include "RageSoundMixBuffer.h"
 #include "RageSoundUtil.h"
+#include "RageSoundConstants.h"
 
 #include <cmath>
 #include <vector>
@@ -25,13 +26,13 @@
  */
 RageSoundReader_Chain::RageSoundReader_Chain()
 {
-	m_iPreferredSampleRate = PREFSMAN->m_iSoundPreferredSampleRate;
-	if (m_iPreferredSampleRate == 0)
-	{
-		m_iPreferredSampleRate = kFallbackSampleRate;
-	}
-	
+	// The preferred sample rate for resampling when sounds have different rates.
+	m_iPreferredSampleRate = FALLBACK_SAMPLE_RATE;
+
+	// The actual sample rate of the audio after resampling.
+	// Used for timing calculations, such as sound offsets or frame positioning.
 	m_iActualSampleRate = -1;
+
 	m_iChannels = 0;
 	m_iCurrentFrame = 0;
 	m_iNextSound = 0;
@@ -79,7 +80,7 @@ void RageSoundReader_Chain::AddSound( int iIndex, float fOffsetSecs, float fPan 
 
 int RageSoundReader_Chain::LoadSound( RString sPath )
 {
-	sPath.MakeLower();
+	MakeLower(sPath);
 
 	std::map<RString, RageSoundReader*>::const_iterator it = m_apNamedSounds.find( sPath );
 	if( it != m_apNamedSounds.end() )
@@ -131,6 +132,15 @@ int RageSoundReader_Chain::GetSampleRateInternal() const
 	return iRate;
 }
 
+int RageSoundReader_Chain::GetSampleRate() const
+{
+	if (m_iActualSampleRate == -1)
+	{
+		return m_iPreferredSampleRate;
+	}
+	return m_iActualSampleRate;
+}
+
 void RageSoundReader_Chain::Finish()
 {
 	/* Figure out how many channels we have.  All sounds must either have 1 or 2 channels,
@@ -176,20 +186,21 @@ void RageSoundReader_Chain::Finish()
 	m_iActualSampleRate = GetSampleRateInternal();
 	if( m_iActualSampleRate == -1 )
 	{
-		for (RageSoundReader *it : m_apLoadedSounds)
+		for (RageSoundReader*& pSound : m_apLoadedSounds)
 		{
-			RageSoundReader_Resample_Good *pResample = new RageSoundReader_Resample_Good( it, m_iPreferredSampleRate );
-			it = pResample;
+			RageSoundReader_Resample_Good *pResample = new RageSoundReader_Resample_Good( pSound, m_iPreferredSampleRate );
+			pSound = pResample;
 		}
 
 		m_iActualSampleRate = m_iPreferredSampleRate;
 	}
 
 	/* Attempt to preload all sounds. */
-	for (RageSoundReader *it : m_apLoadedSounds)
+	for (RageSoundReader*& pSound : m_apLoadedSounds)
 	{
-		RageSoundReader_Preload::PreloadSound( it );
+		RageSoundReader_Preload::PreloadSound( pSound );
 	}
+
 
 	/* Sort the sounds by start time. */
 	sort( m_aSounds.begin(), m_aSounds.end() );

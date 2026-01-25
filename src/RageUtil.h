@@ -10,7 +10,6 @@
 #include <cstdint>
 #include <cstring>
 #include <map>
-#include <random>
 #include <sstream>
 #include <vector>
 
@@ -134,39 +133,6 @@ inline void RemoveIfEqual( Container &c, const Value &v )
 	c.erase( remove(c.begin(), c.end(), v), c.end() );
 }
 
-/* Helper for ConvertValue(). */
-template<typename TO, typename FROM>
-struct ConvertValueHelper
-{
-	explicit ConvertValueHelper( FROM *pVal ): m_pFromValue(pVal)
-	{
-		m_ToValue = static_cast<TO>( *m_pFromValue );
-	}
-
-	~ConvertValueHelper()
-	{
-		*m_pFromValue = static_cast<FROM>( m_ToValue );
-	}
-
-	TO &operator *() { return m_ToValue; }
-	operator TO *() { return &m_ToValue; }
-
-private:
-	FROM *m_pFromValue;
-	TO m_ToValue;
-};
-
-/* Safely temporarily convert between types.  For example,
- *
- * float f = 10.5;
- * *ConvertValue<int>(&f) = 12;
- */
-template<typename TO, typename FROM>
-ConvertValueHelper<TO, FROM> ConvertValue( FROM *pValue )
-{
-	return ConvertValueHelper<TO, FROM>( pValue );
-}
-
 /* Safely add an integer to an enum.
  *
  * This is illegal:
@@ -198,89 +164,6 @@ static inline T enum_cycle( T val, int iMax, int iAmt = 1 )
 	int iVal = val + iAmt;
 	iVal %= iMax;
 	return static_cast<T>( iVal );
-}
-
-namespace Endian
-{
-	// When std::endian is supported by all desired compilers, we can eliminate the #ifdefs
-	// (At least) the current compiler used for the Ubuntu 20.04 build does not support this.
-#if defined(__BYTE_ORDER__)
-	inline constexpr bool little = __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__;
-	inline constexpr bool big    = __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__;
-#elif defined(_WIN32)
-	inline constexpr bool little = true;
-	inline constexpr bool big    = false;
-#else
-#error "unknown byte order"
-#endif
-}
-
-#ifdef _WIN32
-#define Swap32(n) _byteswap_ulong(n)
-#define Swap24(n) _byteswap_ulong(n) >> 8
-#define Swap16(n) _byteswap_ushort(n)
-#else
-#define Swap32(n) __builtin_bswap32(n)
-#define Swap24(n) __builtin_bswap32(n) >> 8
-#define Swap16(n) __builtin_bswap16(n)
-#endif
-
-inline uint32_t Swap32LE( uint32_t n ) { return Endian::little ? n : Swap32( n ); }
-inline uint32_t Swap24LE( uint32_t n ) { return Endian::little ? n : Swap24( n ); }
-inline uint16_t Swap16LE( uint16_t n ) { return Endian::little ? n : Swap16( n ); }
-inline uint32_t Swap32BE( uint32_t n ) { return Endian::big    ? n : Swap32( n ); }
-inline uint32_t Swap24BE( uint32_t n ) { return Endian::big    ? n : Swap24( n ); }
-inline uint16_t Swap16BE( uint16_t n ) { return Endian::big    ? n : Swap16( n ); }
-
-class MersenneTwister : public std::mt19937
-{
-public:
-	MersenneTwister( int iSeed = 0 ) : std::mt19937( iSeed == 0 ? time( nullptr ) : iSeed ) {}
-};
-
-typedef MersenneTwister RandomGen;
-
-extern RandomGen g_RandomNumberGenerator;
-
-/**
- * @brief Return a float between the low and high values.
- * @param fLow the low value, inclusive.
- * @param fHigh the high value, inclusive.
- * @return the random float.
- */
-inline float RandomFloat( float fLow, float fHigh )
-{
-	std::uniform_real_distribution<> dist( fLow, fHigh );
-	return dist( g_RandomNumberGenerator );
-}
-
-/**
- * @brief Generate a random float between 0 inclusive and 1 exclusive.
- * @return the random float.
- */
-inline float RandomFloat()
-{
-	return RandomFloat( 0, 1 );
-}
-
-// Returns an integer between nLow and nHigh inclusive
-inline int RandomInt( int nLow, int nHigh )
-{
-	std::uniform_int_distribution<> dist( nLow, nHigh );
-	return dist( g_RandomNumberGenerator );
-}
-
-// Returns an integer between 0 and n-1 inclusive (replacement for rand() % n).
-inline int RandomInt( int n )
-{
-	return RandomInt( 0, n - 1 );
-}
-
-
-// Simple function for generating random numbers
-inline float randomf( const float low=-1.0f, const float high=1.0f )
-{
-	return RandomFloat( low, high );
 }
 
 /* return f rounded to the nearest multiple of fRoundInterval */
@@ -409,15 +292,6 @@ RString WStringToRString( const std::wstring &sString );
 RString WcharToUTF8( wchar_t c );
 std::wstring RStringToWstring( const RString &sString );
 
-struct LanguageInfo
-{
-	const char *szIsoCode;
-	const char *szEnglishName;
-};
-void GetLanguageInfos( std::vector<const LanguageInfo*> &vAddTo );
-const LanguageInfo *GetLanguageInfo( const RString &sIsoCode );
-RString GetLanguageNameFromISO639Code( RString sName );
-
 // Splits a RString into an std::vector<RString> according the Delimitor.
 void split( const RString &sSource, const RString &sDelimitor, std::vector<RString>& asAddIt, const bool bIgnoreEmpty = true );
 void split( const std::wstring &sSource, const std::wstring &sDelimitor, std::vector<std::wstring> &asAddIt, const bool bIgnoreEmpty = true );
@@ -523,29 +397,6 @@ void StripMacResourceForks( std::vector<RString> &vs ); // Removes files startin
 RString DerefRedir( const RString &sPath );
 bool GetFileContents( const RString &sPath, RString &sOut, bool bOneLine = false );
 bool GetFileContents( const RString &sFile, std::vector<RString> &asOut );
-
-class Regex
-{
-public:
-	Regex( const RString &sPat = "" );
-	Regex( const Regex &rhs );
-	Regex &operator=( const Regex &rhs );
-	~Regex();
-	bool IsSet() const { return !m_sPattern.empty(); }
-	void Set( const RString &str );
-	bool Compare( const RString &sStr );
-	bool Compare( const RString &sStr, std::vector<RString> &asMatches );
-	bool Replace( const RString &sReplacement, const RString &sSubject, RString &sOut );
-
-private:
-	void Compile();
-	void Release();
-
-	void *m_pReg;
-	unsigned m_iBackrefs;
-	RString m_sPattern;
-};
-
 
 void ReplaceEntityText( RString &sText, const std::map<RString,RString> &m );
 void ReplaceEntityText( RString &sText, const std::map<char,RString> &m );

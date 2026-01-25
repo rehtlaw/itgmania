@@ -2,6 +2,7 @@
 #include "RegistryAccess.h"
 #include "RageLog.h"
 #include "RageUtil.h"
+#include "RageUtil/Regex.h"
 #include "archutils/Win32/ErrorStrings.h"
 
 #include <cstddef>
@@ -22,11 +23,11 @@ static bool GetRegKeyType( const RString &sIn, RString &sOut, HKEY &key )
 
 	RString sType = sIn.substr( 0, iBackslash );
 
-	if( !sType.CompareNoCase( "HKEY_CLASSES_ROOT" ) )		key = HKEY_CLASSES_ROOT;
-	else if( !sType.CompareNoCase( "HKEY_CURRENT_CONFIG" ) )	key = HKEY_CURRENT_CONFIG;
-	else if( !sType.CompareNoCase( "HKEY_CURRENT_USER" ) )	key = HKEY_CURRENT_USER;
-	else if( !sType.CompareNoCase( "HKEY_LOCAL_MACHINE" ) )	key = HKEY_LOCAL_MACHINE;
-	else if( !sType.CompareNoCase( "HKEY_USERS" ) )			key = HKEY_USERS;
+	if( !CompareNoCase(sType, "HKEY_CLASSES_ROOT" ) )		key = HKEY_CLASSES_ROOT;
+	else if( !CompareNoCase(sType, "HKEY_CURRENT_CONFIG" ) )	key = HKEY_CURRENT_CONFIG;
+	else if( !CompareNoCase(sType, "HKEY_CURRENT_USER" ) )	key = HKEY_CURRENT_USER;
+	else if( !CompareNoCase(sType, "HKEY_LOCAL_MACHINE" ) )	key = HKEY_LOCAL_MACHINE;
+	else if( !CompareNoCase(sType, "HKEY_USERS" ) )			key = HKEY_USERS;
 	else
 	{
 		LOG->Warn( "Invalid registry key: \"%s\" ", sIn.c_str() );
@@ -53,7 +54,7 @@ static HKEY OpenRegKey( const RString &sKey, RegKeyMode mode, bool bWarnOnError 
 	if ( retval != ERROR_SUCCESS )
 	{
 		if( bWarnOnError )
-			LOG->Warn( werr_ssprintf(retval, "RegOpenKeyEx(%x,%s) error", hType, sSubkey.c_str()) );
+			LOG->Warn( werr_ssprintf(retval, "RegOpenKeyEx(%x,%s) error", hType, sSubkey.c_str()).c_str() );
 		return nullptr;
 	}
 
@@ -135,7 +136,7 @@ bool RegistryAccess::GetRegSubKeys( const RString &sKey, std::vector<RString> &l
 
 		if( iRet != ERROR_SUCCESS )
 		{
-			LOG->Warn( werr_ssprintf(iRet, "GetRegSubKeys(%p,%i) error", hKey, index) );
+			LOG->Warn( werr_ssprintf(iRet, "GetRegSubKeys(%p,%i) error", hKey, index).c_str() );
 			bError = true;
 			break;
 		}

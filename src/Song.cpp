@@ -45,9 +45,6 @@
 #include <set>
 #include <vector>
 
-//-Nick12 Used for song file hashing
-#include <CryptManager.h>
-
 /**
  * @brief The internal version of the cache for StepMania.
  *
@@ -273,11 +270,6 @@ const RString &Song::GetSongFilePath() const
 	return m_sSongFileName;
 }
 
-/* Hack: This should be a parameter to TidyUpData, but I don't want to pull in
- * <set> into Song.h, which is heavily used. */
-static std::set<RString> BlacklistedImages;
-
-
 /* If PREFSMAN->m_bFastLoad is true, always load from cache if possible.
  * Don't read the contents of sDir if we can avoid it. That means we can't call
  * HasMusic(), HasBanner() or GetHashForDirectory().
@@ -289,7 +281,7 @@ bool Song::LoadFromSongDir(RString sDir, bool load_autosave, ProfileSlot from_pr
 	ASSERT_M( sDir != "", "Songs can't be loaded from an empty directory!" );
 
 	// make sure there is a trailing slash at the end of sDir
-	if( sDir.Right(1) != "/" )
+	if( Right(sDir, 1) != "/" )
 		sDir += "/";
 
 	// save song dir
@@ -357,10 +349,12 @@ bool Song::LoadFromSongDir(RString sDir, bool load_autosave, ProfileSlot from_pr
 	}
 	else
 	{
+		std::set<RString> blacklistedImages;
+
 		// There was no entry in the cache for this song, or it was out of date.
 		// Let's load it from a file, then write a cache entry.
 
-		if(!NotesLoader::LoadFromDir(sDir, *this, BlacklistedImages, load_autosave))
+		if(!NotesLoader::LoadFromDir(sDir, *this, blacklistedImages, load_autosave))
 		{
 			LOG->UserLog( "Song", sDir, "has no SSC, SM, SMA, DWI, BMS, or KSF files." );
 
@@ -385,7 +379,7 @@ bool Song::LoadFromSongDir(RString sDir, bool load_autosave, ProfileSlot from_pr
 		// loading time. -Kyz
 		LoadEditsFromSongDir(sDir);
 
-		TidyUpData(false, true);
+		TidyUpData(false, true, blacklistedImages);
 		// Don't save a cache file if the autosave is being loaded, because the
 		// cache file would contain the autosave filename. -Kyz
 		// Songs loaded from removable profile are never cached, on the
@@ -431,7 +425,7 @@ bool Song::LoadFromSongDir(RString sDir, bool load_autosave, ProfileSlot from_pr
 	// Normally TidyUpData would handle setting the m_fBeat0GroupOffsetInSeconds.
 	// That is to keep the song start and end times become inaccurate in some cases.
 	// SInce there are cases where TidyUpData isn't called, we still want to guarantee the
-	// m_fBeat0GroupOffsetInSeconds is always set so we do that here. 
+	// m_fBeat0GroupOffsetInSeconds is always set so we do that here.
 	float fOffset = PREFSMAN->m_DefaultSyncOffset == SyncOffset_NULL ? 0 : -0.009;
 	if (SONGMAN->GetGroupFromName(m_sGroupName) != nullptr)
 	{
@@ -489,7 +483,7 @@ bool Song::ReloadFromSongDir( RString sDir )
 		return false;
 	copy.RemoveAutoGenNotes();
 	*this = copy;
-	
+
 	if (SONGMAN->GetGroup(this) != nullptr) {
 		m_SongTiming.m_fBeat0GroupOffsetInSeconds = SONGMAN->GetGroup(this)->GetSyncOffset();
 	} else {
@@ -661,11 +655,17 @@ void FixupPath( RString &path, const RString &sSongPath )
 	Trim( path );
 }
 
+
+void Song::TidyUpData(bool from_cache, bool duringCache)
+{
+	Song::TidyUpData(from_cache, duringCache, std::set<RString>());
+}
+
 // Songs in BlacklistImages will never be autodetected as song images.
-void Song::TidyUpData( bool from_cache, bool /* duringCache */ )
+void Song::TidyUpData( bool from_cache, bool /* duringCache */, const std::set<RString>& blacklistedImages )
 {
 	// We need to do this before calling any of HasMusic, HasHasCDTitle, etc.
-	ASSERT_M(m_sSongDir.Left(3) != "../", m_sSongDir); // meaningless
+	ASSERT_M(Left(m_sSongDir, 3) != "../", m_sSongDir); // meaningless
 	FixupPath(m_sSongDir, "");
 	FixupPath(m_sMusicFile, m_sSongDir);
 	FOREACH_ENUM(InstrumentTrack, i)
@@ -773,7 +773,7 @@ void Song::TidyUpData( bool from_cache, bool /* duringCache */ )
 				filename != song_dir_listing.end(); ++filename)
 		{
 			bool matched_something= false;
-			RString file_ext= GetExtension(*filename).MakeLower();
+			RString file_ext= MakeLower(GetExtension(*filename));
 			if(!file_ext.empty())
 			{
 				for(size_t tf= 0; tf < lists_to_fill.size(); ++ tf)
@@ -807,7 +807,7 @@ void Song::TidyUpData( bool from_cache, bool /* duringCache */ )
 				m_bHasMusic= true;
 				m_sMusicFile= music_list[0];
 				if(music_list.size() > 1 &&
-					!m_sMusicFile.Left(5).CompareNoCase("intro"))
+					!CompareNoCase(Left(m_sMusicFile, 5), "intro"))
 				{
 					m_sMusicFile= music_list[1];
 				}
@@ -1012,28 +1012,28 @@ void Song::TidyUpData( bool from_cache, bool /* duringCache */ )
 
 				// ignore DWI "-char" graphics
 				RString lower = image_list[i];
-				lower.MakeLower();
-				if(BlacklistedImages.find(lower) != BlacklistedImages.end())
+				MakeLower(lower);
+				if(blacklistedImages.find(lower) != blacklistedImages.end())
 				continue;	// skip
 
 				// Skip any image that we've already classified
 
-				if(m_bHasBanner && m_sBannerFile.EqualsNoCase(image_list[i]))
+				if(m_bHasBanner && EqualsNoCase(m_sBannerFile, image_list[i]))
 				continue;	// skip
 
-				if(m_bHasBackground && m_sBackgroundFile.EqualsNoCase(image_list[i]))
+				if(m_bHasBackground && EqualsNoCase(m_sBackgroundFile, image_list[i]))
 				continue;	// skip
 
-				if(has_cdtitle && m_sCDTitleFile.EqualsNoCase(image_list[i]))
+				if(has_cdtitle && EqualsNoCase(m_sCDTitleFile, image_list[i]))
 				continue;	// skip
 
-				if(has_jacket && m_sJacketFile.EqualsNoCase(image_list[i]))
+				if(has_jacket && EqualsNoCase(m_sJacketFile, image_list[i]))
 				continue;	// skip
 
-				if(has_disc && m_sDiscFile.EqualsNoCase(image_list[i]))
+				if(has_disc && EqualsNoCase(m_sDiscFile, image_list[i]))
 				continue;	// skip
 
-				if(has_cdimage && m_sCDFile.EqualsNoCase(image_list[i]))
+				if(has_cdimage && EqualsNoCase(m_sCDFile, image_list[i]))
 				continue;	// skip
 
 				RString sPath = m_sSongDir + image_list[i];
@@ -1197,7 +1197,7 @@ void Song::ReCalculateStepStatsAndLastSecond(bool fromCache, bool duringCache)
 	{
 		Steps* pSteps = m_vpSteps[i];
 		pSteps->CalculateStepStats(m_fMusicLengthSeconds);
-		
+
 		// Must initialize before the gotos.
 		NoteData tempNoteData;
 		pSteps->GetNoteData( tempNoteData );
@@ -1765,26 +1765,6 @@ RString Song::GetCacheFile(RString sType)
 	return "";
 }
 
-RString Song::GetFileHash()
-{
-	static const std::vector<RString> extensions = {
-		"ssc", "sm", "dwi", "sma", "bms", "ksf", "json", "jso"
-	};
-
-	if (m_sFileHash.empty()) {
-		for (const RString& ext : extensions) {
-			RString sPath = SetExtension(GetSongFilePath(), ext);
-			if (IsAFile(sPath)) {
-				m_sFileHash = BinaryToHex(CRYPTMAN->GetSHA1ForFile(sPath));
-				return m_sFileHash;
-			}
-		}
-	}
-
-	m_sFileHash = "";
-	return m_sFileHash;
-}
-
 std::vector<RString> Song::GetInstrumentTracksToVectorString() const
 {
 	std::vector<RString> ret;
@@ -1815,7 +1795,7 @@ RString Song::GetSongAssetPath( RString sPath, const RString &sSongPath )
 		return sRelPath;
 
 	// The song contains a path; treat it as relative to the top SM directory.
-	if( sPath.Left(3) == "../" )
+	if( Left(sPath, 3) == "../" )
 	{
 		// The path begins with "../".  Resolve it wrt. the song directory.
 		sPath = sRelPath;
@@ -1825,7 +1805,7 @@ RString Song::GetSongAssetPath( RString sPath, const RString &sSongPath )
 
 	/* If the path still begins with "../", then there were an unreasonable number
 	 * of them at the beginning of the path. Ignore the path entirely. */
-	if( sPath.Left(3) == "../" )
+	if( Left(sPath, 3) == "../" )
 		return RString();
 
 	return sPath;
@@ -1996,13 +1976,13 @@ void Song::DeleteSteps( const Steps* pSteps, bool bReAutoGen )
 
 bool Song::Matches(RString sGroup, RString sSong) const
 {
-	if( sGroup.size() && sGroup.CompareNoCase(this->m_sGroupName) != 0)
+	if( sGroup.size() && CompareNoCase(sGroup, this->m_sGroupName) != 0)
 		return false;
 
 	// match on song dir or title (ala DWI)
-	if( !sSong.CompareNoCase(m_sSongName) )
+	if( !CompareNoCase(sSong, m_sSongName) )
 		return true;
-	if( !sSong.CompareNoCase(this->GetTranslitFullTitle()) )
+	if( !CompareNoCase(sSong, this->GetTranslitFullTitle()) )
 		return true;
 
 	return false;

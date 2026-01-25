@@ -9,6 +9,7 @@
 #include "ActorUtil.h"
 #include "LuaBinding.h"
 #include "RageTimer.h"
+#include "RageUtil/RandomNumbers.h"
 
 #include <cmath>
 #include <cstddef>
@@ -127,12 +128,18 @@ void BitmapText::SetCurrentTweenStart()
 
 void BitmapText::EraseHeadTween()
 {
+	if (BMT_Tweens.empty())
+        return;
+
 	BMT_current= BMT_Tweens[0];
 	BMT_Tweens.erase(BMT_Tweens.begin());
 }
 
 void BitmapText::UpdatePercentThroughTween(float between)
 {
+	if (BMT_Tweens.empty())
+        return;
+
 	BMT_TweenState::MakeWeightedAverage(BMT_current, BMT_start, BMT_Tweens[0],
 		between);
 }
@@ -463,7 +470,7 @@ void BitmapText::SetText( const RString& _sText, const RString& _sAlternateText,
 	RString sNewText = StringWillUseAlternate(_sText,_sAlternateText) ? _sAlternateText : _sText;
 
 	if( m_bUppercase )
-		sNewText.MakeUpper();
+		MakeUpper(sNewText);
 
 	if( iWrapWidthPixels == -1 )	// wrap not specified
 		iWrapWidthPixels = m_iWrapWidthPixels;
@@ -705,12 +712,12 @@ void BitmapText::DrawPrimitives() noexcept
 
 			RageColor c = m_ShadowColor;
 			c.a *= m_pTempState->diffuse[0].a;
-			
+
 			for (RageSpriteVertex& vertex : m_aVertices)
 			{
 				vertex.c = c;
 			}
-			
+
 			DrawChars( false );
 
 			DISPLAY->PopMatrix();
@@ -802,7 +809,7 @@ void BitmapText::DrawPrimitives() noexcept
 			RandomGen rnd( iSeed );
 			for (size_t i = 0; i < m_aVertices.size(); i += 4)
 			{
-				
+
 				RageVector3 jitter( rnd()%2, rnd()%3, 0 );
 				vGlyphJitter.push_back( jitter );
 
@@ -1069,13 +1076,13 @@ public:
 		 * it's confusing for :: to work in some strings and not others.
 		 * Eventually, all strings should be Lua expressions, but until then,
 		 * continue to support this. */
-		s.Replace("::","\n");
+		Replace(s, "::", "\n");
 		FontCharAliases::ReplaceMarkers( s );
 
 		if( lua_gettop(L) > 1 )
 		{
 			sAlt = SArg(2);
-			sAlt.Replace("::","\n");
+			Replace(sAlt, "::", "\n");
 			FontCharAliases::ReplaceMarkers( sAlt );
 		}
 

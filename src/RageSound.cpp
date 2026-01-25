@@ -147,7 +147,7 @@ public:
 	int SetPosition( int iFrame )  { return 1; }
 	int Read( float *pBuf, int iFrames ) { return RageSoundReader::END_OF_FILE; }
 	RageSoundReader *Copy() const { return new RageSoundReader_Silence; }
-	int GetSampleRate() const { return kFallbackSampleRate; }
+	int GetSampleRate() const { return FALLBACK_SAMPLE_RATE; }
 	unsigned GetNumChannels() const { return 1; }
 	int GetNextSourceFrame() const { return 0; }
 	float GetStreamToSourceRatio() const { return 1.0f; }
@@ -300,11 +300,12 @@ int RageSound::GetDataToPlay( float *pBuffer, int iFrames, int64_t &iStreamFrame
 				break;
 		}
 
-		m_Mutex.Lock();
-		m_StreamToSourceMap.Insert( m_iStreamFrame, iGotFrames, iSourceFrame, fRate );
-		m_Mutex.Unlock();
-
-		m_iStreamFrame += iGotFrames;
+		// Scoped global audio mutex lock while updating the position maps.
+		{
+			LockMut(m_Mutex); 
+			m_StreamToSourceMap.Insert( m_iStreamFrame, iGotFrames, iSourceFrame, fRate );
+			m_iStreamFrame += iGotFrames;
+		}
 
 		iFramesStored += iGotFrames;
 		iFrames -= iGotFrames;
@@ -370,33 +371,44 @@ void RageSound::SoundIsFinishedPlaying()
 	if( !m_bPlaying )
 		return;
 
-	/* Get our current hardware position. */
+	// Get current hardware position to update stopped source frame when sound finishes playing.
 	int64_t iCurrentHardwareFrame = SOUNDMAN->GetPosition(nullptr);
-
-	m_Mutex.Lock();
-
-	if( m_bDeleteWhenFinished )
+    
+	// Make the decision to delete while inside the lock.
+	// Do the actual deletion after releasing the mutex.
+	bool bDeleteThis = false;
 	{
-		m_bDeleteWhenFinished = false;
-		m_Mutex.Unlock();
+		// Global sound mutex
+		LockMut(m_Mutex);
+        
+		// Update the stopped source frame using the current hardware frame,
+		// but only if the hardware-to-stream and stream-to-source maps are not empty.
+		// This branch handles normal cleanup when the sound is not scheduled for deletion.
+		// If the maps are empty, we leave m_iStoppedSourceFrame untouched.
+		if( m_bDeleteWhenFinished )
+		{
+			m_bDeleteWhenFinished = false;
+			bDeleteThis = true;
+		}
+		else
+		{
+			if( !m_HardwareToStreamMap.IsEmpty() && !m_StreamToSourceMap.IsEmpty() )
+			{
+				// Update stopped position only if maps are available; otherwise, preserve existing value.
+				m_iStoppedSourceFrame = static_cast<int>(GetSourceFrameFromHardwareFrame(iCurrentHardwareFrame));
+			}
+
+			m_bPlaying = false;
+			m_HardwareToStreamMap.Clear();
+			m_StreamToSourceMap.Clear();
+		}
+	}
+
+	if( bDeleteThis )
+	{
 		delete this;
 		return;
 	}
-
-	// Update the stopped source frame using the current hardware frame,
-	// but only if the hardware-to-stream and stream-to-source maps are not empty
-	if (!m_HardwareToStreamMap.IsEmpty() && !m_StreamToSourceMap.IsEmpty())
-		m_iStoppedSourceFrame = static_cast<int>(GetSourceFrameFromHardwareFrame(iCurrentHardwareFrame));
-
-//	LOG->Trace("set playing false for %p (SoundIsFinishedPlaying) (%s)", this, this->GetLoadedFilePath().c_str());
-	m_bPlaying = false;
-
-	m_HardwareToStreamMap.Clear();
-	m_StreamToSourceMap.Clear();
-
-//	LOG->Trace("SoundIsFinishedPlaying %p finished (%s)", this, this->GetLoadedFilePath().c_str());
-
-	m_Mutex.Unlock();
 }
 
 void RageSound::Play(bool is_action, const RageSoundParams *pParams)
@@ -494,18 +506,16 @@ float RageSound::GetPositionSeconds( RageTimer *pTimestamp ) const
 	// Get our current hardware position.
 	int64_t iCurrentHardwareFrame = SOUNDMAN->GetPosition(pTimestamp);
 
-	// Lock the mutex after calling SOUNDMAN->GetPosition().
-	LockMut(m_Mutex);
-
 	// cast the sample rate to be used for the remainder of the function.
 	float fSampleRate = static_cast<float>(m_pSource->GetSampleRate());
 
-	/* If we're not playing, just report the static position. */
+	// Quick check without lock
 	if( !IsPlaying() )
 		return static_cast<float>(m_iStoppedSourceFrame) / fSampleRate;
 
-	/* If we don't yet have any position data, CommitPlayingPosition hasn't yet been called at all,
-	 * so guess what we think the real time is. */
+	// If we don't have position information, CommitPlayingPosition hasn't been called yet
+	LockMut(m_Mutex);
+    
 	if( m_HardwareToStreamMap.IsEmpty() || m_StreamToSourceMap.IsEmpty() )
 	{
 		return static_cast<float>(m_iStoppedSourceFrame) / fSampleRate;

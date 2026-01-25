@@ -1,6 +1,7 @@
 #include "global.h"
 #include "RageBitmapTexture.h"
 #include "RageUtil.h"
+#include "RageUtil/Regex.h"
 #include "RageLog.h"
 #include "RageTextureManager.h"
 #include "RageDisplay.h"
@@ -112,7 +113,7 @@ void RageBitmapTexture::Create()
 
 	// look in the file name for a format hints
 	RString sHintString = GetID().filename + actualID.AdditionalTextureHints;
-	sHintString.MakeLower();
+	MakeLower(sHintString);
 
 	if( sHintString.find("32bpp") != std::string::npos )			actualID.iColorDepth = 32;
 	else if( sHintString.find("16bpp") != std::string::npos )		actualID.iColorDepth = 16;
@@ -136,8 +137,15 @@ void RageBitmapTexture::Create()
 	if( actualID.iGrayscaleBits != -1 && pImg->format->BitsPerPixel == 8 )
 		actualID.iGrayscaleBits = -1;
 
+	// To avoid the overhead of querying the hardware's maximum texture size
+	// every time a texture is loaded, we can cache the value returned by
+	// DISPLAY->GetMaxTextureSize() in RageBitmapTexture::Create(). This value
+	// remains consistent throughout runtime. For example, when using OpenGL,
+	// this is the value of GL_MAX_TEXTURE_SIZE. --sukibaby
+	static const int iMaxTextureSize = DISPLAY->GetMaxTextureSize();
+
 	/* Cap the max texture size to the hardware max. */
-	actualID.iMaxSize = std::min( actualID.iMaxSize, DISPLAY->GetMaxTextureSize() );
+	actualID.iMaxSize = std::min( actualID.iMaxSize, iMaxTextureSize );
 
 	/* Save information about the source. */
 	m_iSourceWidth = pImg->w;

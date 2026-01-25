@@ -36,9 +36,9 @@ void ScreenSelect::Init()
 	// Load choices
 	// Allow lua as an alternative to metrics.
 	RString choice_names= CHOICE_NAMES;
-	if(choice_names.Left(4) == "lua,")
+	if(Left(choice_names, 4) == "lua,")
 	{
-		RString command= choice_names.Right(choice_names.size()-4);
+		RString command= Right(choice_names, choice_names.size()-4);
 		Lua* L= LUA->Get();
 		if(LuaHelpers::RunExpression(L, command, m_sName + "::ChoiceNames"))
 		{
@@ -227,8 +227,17 @@ void ScreenSelect::HandleScreenMessage( const ScreenMessage SM )
 
 		SCREENMAN->RefreshCreditsMessages();
 
-		ASSERT( !IsTransitioning() );
-		StartTransitioningScreen( SM_GoToNextScreen );
+		if( IsTransitioning() )
+		{
+			// If the player pressed Start and Back on the same frame, the
+			// Cancel transition can have started after the
+			// SM_BeginFadingOut message was queued.
+			LOG->Warn("Still transitioning when playing SM_GoToNextScreen");
+		}
+		else
+		{
+			StartTransitioningScreen( SM_GoToNextScreen );
+		}
 	}
 
 	ScreenWithMenuElements::HandleScreenMessage( SM );

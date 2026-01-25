@@ -3,6 +3,7 @@
 #include "RageSound.h"
 #include "RageUtil.h"
 #include "RageLog.h"
+#include "RageUtil/RandomNumbers.h"
 
 #include <vector>
 
@@ -48,7 +49,7 @@ bool RandomSample::LoadSoundDir( RString sDir, int iMaxToLoad )
 		sDir += "/";
 #else
 	// make sure there's a slash at the end of this path
-	if( sDir.Right(1) != "/" )
+	if( Right(sDir, 1) != "/" )
 		sDir += "/";
 #endif
 

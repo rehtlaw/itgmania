@@ -4,6 +4,7 @@
 #include "IniFile.h"
 #include "GameState.h"
 #include "PlayerState.h"
+#include "RageUtil/RandomNumbers.h"
 
 #define AI_PATH "Data/AI.ini"
 

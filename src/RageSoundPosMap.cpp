@@ -8,7 +8,7 @@
 #include <climits>
 #include <cmath>
 #include <cstdint>
-#include <list>
+#include <deque>
 
 // NOTE(sukibaby): The number of frames we should keep pos_map data for.
 // File bitrate, metadata, etc will factor in here. 80k is a safe value
@@ -29,7 +29,7 @@ struct pos_map_t
 
 struct pos_map_impl
 {
-	std::list<pos_map_t> m_Queue;
+	std::deque<pos_map_t> m_Queue;
 	void Cleanup();
 };
 
@@ -82,7 +82,7 @@ void pos_map_queue::Insert(int64_t iSourceFrame, int64_t iFrames, int64_t iDestF
 
 	if (!merged)
 	{
-		m_pImpl->m_Queue.push_back(pos_map_t());
+		m_pImpl->m_Queue.emplace_back();
 		pos_map_t& m = m_pImpl->m_Queue.back();
 		m.m_iSourceFrame = iSourceFrame;
 		m.m_iDestFrame = iDestFrame;
@@ -95,7 +95,7 @@ void pos_map_queue::Insert(int64_t iSourceFrame, int64_t iFrames, int64_t iDestF
 
 void pos_map_impl::Cleanup()
 {
-	std::list<pos_map_t>::iterator it = m_Queue.end();
+	auto it = m_Queue.end();
 	int64_t iTotalFrames = 0;
 	// Scan backwards until we have at least pos_map_backlog_frames.
 	while (iTotalFrames < pos_map_backlog_frames)
@@ -161,7 +161,7 @@ int64_t pos_map_queue::Search( int64_t iSourceFrame ) const
 	if( last.Ago() >= 1.0f )
 	{
 		last.Touch();
-		LOG->Trace("Audio frame (%" PRId64 ") was out of range of the data sent - possible buffer underflow? This is not always an error, however if you see it frequently there could be sound buffer problems.", iSourceFrame);
+		LOG->Trace("Audio position mismatch: frame %" PRId64 " outside buffered range (normal during start/stop)", iSourceFrame);
 	}
 
 	return iClosestPosition;

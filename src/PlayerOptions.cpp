@@ -1,6 +1,7 @@
 #include "global.h"
 #include "PlayerOptions.h"
 #include "RageUtil.h"
+#include "RageUtil/Regex.h"
 #include "GameState.h"
 #include "NoteSkinManager.h"
 #include "Song.h"
@@ -9,6 +10,7 @@
 #include "ThemeManager.h"
 #include "Style.h"
 #include "CommonMetrics.h"
+#include "RageUtil/RandomNumbers.h"
 
 #include <cfloat>
 #include <cmath>
@@ -648,7 +650,7 @@ bool PlayerOptions::FromOneModString( const RString &sOneMod, RString &sErrorOut
 
 	RString sBit = sOneMod;
 	RString sMod = "";
-	sBit.MakeLower();
+	MakeLower(sBit);
 	Trim( sBit );
 
 	/* "drunk"
@@ -677,7 +679,7 @@ bool PlayerOptions::FromOneModString( const RString &sOneMod, RString &sErrorOut
 			}
 			/* If the last character is a *, they probably said "123*" when
 			 * they meant "*123". */
-			else if( s.Right(1) == "*" )
+			else if( Right(s, 1) == "*" )
 			{
 				// XXX: We know what they want, is there any reason not to handle it?
 				// Yes. We should be strict in handling the format. -Chris
@@ -1224,7 +1226,7 @@ bool PlayerOptions::FromOneModString( const RString &sOneMod, RString &sErrorOut
 				break;
 
 			TimingWindow tw;
-			bool ret = StringConversion::FromString(matches[0].MakeUpper(), tw);
+			bool ret = StringConversion::FromString(MakeUpper(matches[0]), tw);
 			if (ret && TW_W1 <= tw && tw <= TW_W5)
 			{
 				m_twDisabledWindows.set(tw);
@@ -1239,7 +1241,7 @@ bool PlayerOptions::FromOneModString( const RString &sOneMod, RString &sErrorOut
 	{
 		// Maybe the original string is a noteskin name with a space. -Kyz
 		RString name= sOneMod;
-		name.MakeLower();
+		MakeLower(name);
 		if(NOTESKIN && NOTESKIN->DoesNoteSkinExist(name))
 		{
 			m_sNoteSkin = name;
@@ -1680,8 +1682,10 @@ bool PlayerOptions::IsEasierForSongAndSteps( Song* pSong, Steps* pSteps, PlayerN
 	if ((m_fNoAttack && pSteps->HasAttacks()) || m_fRandAttack)
 		return true;
 
-	if( m_fCover )	return true;
-
+	if( m_fCover && (!pSong->GetBackgroundChanges(BACKGROUND_LAYER_1).empty() || !pSong->GetForegroundChanges().empty())) {
+		return true;
+	}
+	
 	// M-mods make songs with indefinite BPMs easier because
 	// they ensure that the song has a scrollable speed.
 	if( m_fMaxScrollBPM != 0 )

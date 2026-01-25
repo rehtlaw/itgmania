@@ -1,6 +1,8 @@
 #include "global.h"
 #include "Profile.h"
 #include "RageUtil.h"
+#include "RageUtil/ConvertValue.h"
+#include "RageUtil/Regex.h"
 #include "PrefsManager.h"
 #include "XmlFile.h"
 #include "IniFile.h"
@@ -246,7 +248,7 @@ Character *Profile::GetCharacter() const
 	CHARMAN->GetCharacters( vpCharacters );
 	for (Character *c : vpCharacters)
 	{
-		if( c->m_sCharacterID.CompareNoCase(m_sCharacterID)==0 )
+		if( CompareNoCase(c->m_sCharacterID, m_sCharacterID)==0 )
 			return c;
 	}
 	return CHARMAN->GetDefaultCharacter();
@@ -1165,7 +1167,7 @@ ProfileLoadResult Profile::LoadAllFromDir( RString sDir, bool bRequireSignature 
 {
 	LOG->Trace( "Profile::LoadAllFromDir( %s )", sDir.c_str() );
 
-	ASSERT( sDir.Right(1) == "/" );
+	ASSERT( Right(sDir, 1) == "/" );
 
 	InitAll();
 
@@ -2162,9 +2164,9 @@ void Profile::LoadCourseScoresFromNode( const XNode* pCourseScores )
 
 				for (Course *c : vpAllCourses)
 				{
-					RString sOther = c->m_sPath.Right(sFullFileName.size());
+					RString sOther = Right(c->m_sPath, sFullFileName.size());
 
-					if( sFullFileName.CompareNoCase(sOther) == 0 )
+					if( CompareNoCase(sFullFileName, sOther) == 0 )
 					{
 						pC = c;
 						courseID.FromCourse( pC );

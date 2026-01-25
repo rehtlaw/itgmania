@@ -198,10 +198,6 @@ public:
 	/** @brief The transliterated artist of the Song, if it exists. */
 	RString m_sArtistTranslit;
 
-
-	RString m_sFileHash;
-	RString GetFileHash();
-
 	/* If PREFSMAN->m_bShowNative is off, these are the same as GetTranslit*
 	 * below. Otherwise, they return the main titles. */
 	RString GetDisplayMainTitle() const;
@@ -350,6 +346,9 @@ private:
 	AutoPtrCopyOnWrite<VBackgroundChange>	m_ForegroundChanges;
 
 	std::vector<RString> GetChangesToVectorString(const std::vector<BackgroundChange> & changes) const;
+
+	void TidyUpData( bool fromCache, bool duringCache, const std::set<RString>& blacklistedImages );
+
 public:
 	const std::vector<BackgroundChange>	&GetBackgroundChanges( BackgroundLayer bl ) const;
 	std::vector<BackgroundChange>	&GetBackgroundChanges( BackgroundLayer bl );
