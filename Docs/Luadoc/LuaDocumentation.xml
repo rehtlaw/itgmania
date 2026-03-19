@@ -3863,9 +3863,18 @@ NETWORK:WebSocket{
 	<Function name='DoesNoteSkinExist' return='bool' arguments='string strName'>
 		Returns <code>true</code> if the <code>strName</code> noteskin exists in the current gametype.
 	</Function>
-	<Function name='GetNoteSkinNames' return='{string}' arguments=''>
-		Returns a table of noteskin names for the current gametype.
+<Function name='GetNoteSkinNames' return='{string}' arguments='bool bIncludeVariants'>
+		Returns a table of noteskin names for the current gametype. (New since ITGmania 1.2.0) If the optional argument <code>bIncludeVariants</code> is true or omitted, the table will include both base noteskin names and their variants.
 	</Function>
+	<Function name='HasVariants' return='bool' arguments='string strName' since='ITGmania 1.2.0'>
+		Returns <code>true</code> if the noteskin <code>strName</code> has any variants.
+	</Function>
+	<Function name='GetVariantNamesForNoteSkin' return='{string}' arguments='string strName' since='ITGmania 1.2.0'>
+		Returns a table of variant names for the noteskin <code>strName</code>. If the noteskin has no variants, returns an empty table.
+	</Function>
+	<Function name='IsNoteSkinVariant' return='bool' arguments='string strName' since='ITGmania 1.2.0'>
+		Returns <code>true</code> if the noteskin <code>strName</code> is a variant of another noteskin.
+	</Function>	
 </Class>
 <Class name='NCSplineHandler'>
 	<Description>
@@ -5326,6 +5335,9 @@ Details of the <code>event</code> table:
 	<Function name='GetEditState' return='EditState' arguments=''>
 		Returns the current <Link class='ENUM' function='EditState' />.
 	</Function>
+	<Function name='SeekSong' return='void' arguments='float second' since='ITGmania 1.2.0'>
+		Moves the song cursor to the input <code>second</code> seconds.
+	</Function>
 </Class>
 <Class name='ScreenEvaluation' grouping='Screen'>
 	<Function name='GetStageStats' return='StageStats' arguments=''>
@@ -5487,6 +5499,13 @@ Details of the <code>event</code> table:
 	</Function>
 	<Function name='SetOptionRowIndex' return='' arguments='PlayerNumber pn, int iRow' since='ITGmania 1.2.0'>
 		Sets OptionRow <code>iRow</code> as the active row for player <code>pn</code>.  The first row has index <code>0</code>.
+	</Function>
+	<Function name='SetOptionRowVisible' return='' arguments='int iRow, bool bVisible, bool bRedraw' since='ITGmania 1.2.0'>
+			Sets OptionRow <code>iRow</code> to be visible or invisible according to <code>bVisible</code>.  The first row has index <code>0</code>.	<br />
+			Setting an option row to invisible disables it for both players and pops it out of the options list. Use <code>bRedraw</code> to leverage whether the rows are repositioned immediately.
+	</Function>
+	<Function name='RedrawOptions' return='' arguments='' since='ITGmania 1.2.0'>
+			Redraws the options list which updates each row's position and visibility, maintains current indexes and will exclude disabled rows.
 	</Function>
 </Class>
 <Class name='ScreenPlayerOptions' grouping='Screen'>

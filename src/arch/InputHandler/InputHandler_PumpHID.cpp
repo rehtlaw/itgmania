@@ -2,7 +2,14 @@
 // compile
 
 // clang-format off
-#include "global.h"
+#include "EnumHelper.h"
+#include "GameInput.h"
+#include "InputMapper.h"
+#include "LightsManager.h"
+#include "RageInputDevice.h"
+#include "StdString.h"
+#include "arch/InputHandler/InputHandler.h"
+#include "archutils/Common/HidDevice.h"
 #include "InputHandler_PumpHID.h"
 #include "PrefsManager.h"
 #include "RageLog.h"
@@ -12,22 +19,15 @@
 #include "Game.h"
 
 #include <cerrno>
-#include <cstdio>
+#include <cstdint>
+#include <string>
 #include <cstring>
-#include <set>
 #include <vector>
 
-#if defined(HAVE_UNISTD_H)
-#include <unistd.h>
-#endif
 #if defined(HAVE_FCNTL_H)
 #include <fcntl.h>
 #endif
 
-#include <sys/types.h>
-#include <sys/stat.h>
-
-#include "hidapi.h"
 // clang-format on
 
 // all of the known device pid's that use this communication protocol.
@@ -68,7 +68,7 @@ InputHandler_PumpHID::~InputHandler_PumpHID() {
   }
 }
 
-RString InputHandler_PumpHID::GetDeviceSpecificInputString(
+std::string InputHandler_PumpHID::GetDeviceSpecificInputString(
     const DeviceInput& di) {
   return InputHandler::GetDeviceSpecificInputString(di);
 }
@@ -97,7 +97,7 @@ void InputHandler_PumpHID::InputThreadMain() {
     // even though we need to write to the PumpHID every cycle (otherwise it
     // will lock up) we don't need to make a new message every time because you
     // know it hasn't changed.
-    if (IsLightChange(prevLS, newLS)) {
+    if (prevLS != newLS) {
       CreateLightingMessage(newLS);
     }
 
@@ -147,7 +147,7 @@ void InputHandler_PumpHID::CreateLightingMessage(LightsState newLS) {
 
   // check to see which game we are running as it can change during gameplay.
   const InputScheme* pInput = &GAMESTATE->GetCurrentGame()->m_InputScheme;
-  RString sInputName = pInput->m_szName;
+  std::string sInputName = pInput->m_szName;
 
   if (EqualsNoCase(sInputName, "dance")) {
     msg_to_device.lamp_p1_ul =
@@ -276,24 +276,4 @@ void InputHandler_PumpHID::PushInputStateToEngine(std::uint32_t newInput) {
 
     ButtonPressed(di);
   }
-}
-
-bool InputHandler_PumpHID::IsLightChange(
-    LightsState prevLS, LightsState newLS) {
-  FOREACH_CabinetLight(light) {
-    if (prevLS.m_bCabinetLights[light] != newLS.m_bCabinetLights[light]) {
-      return true;
-    }
-  }
-
-  for (int gc = 0; gc < NUM_GameController; gc++) {
-    FOREACH_ENUM(GameButton, gb) {
-      if (prevLS.m_bGameButtonLights[gc][gb] !=
-          newLS.m_bGameButtonLights[gc][gb]) {
-        return true;
-      }
-    }
-  }
-
-  return false;
 }

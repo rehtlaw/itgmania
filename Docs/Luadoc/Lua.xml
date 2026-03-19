@@ -1180,6 +1180,9 @@
 			<Function name='GetPathForNoteSkin'/>
 			<Function name='LoadActor'/>
 			<Function name='LoadActorForNoteSkin'/>
+			<Function name='HasVariants'/>
+			<Function name='IsNoteSkinVariant'/>
+			<Function name='GetVariantNamesForNoteSkin'/>
 		</Class>
 		<Class base='ActorFrame' name='OptionRow'>
 			<Function name='FirstItemGoesDown'/>
@@ -1685,6 +1688,7 @@
 		<Class base='ScreenWithMenuElements' name='ScreenAttract'/>
 		<Class base='ScreenWithMenuElements' name='ScreenEdit'>
 			<Function name='GetEditState'/>
+			<Function name='SeekSong'/>
 		</Class>
 		<Class base='ScreenWithMenuElements' name='ScreenEvaluation'>
 			<Function name='GetStageStats'/>
@@ -1741,6 +1745,8 @@
 			<Function name='GetNumRows'/>
 			<Function name='GetOptionRow'/>
 			<Function name='SetOptionRowIndex'/>
+			<Function name='SetOptionRowVisible'/>
+			<Function name='RedrawOptions'/>
 		</Class>
 		<Class base='ScreenOptions' name='ScreenPlayerOptions'>
 			<Function name='GetGoToOptions'/>

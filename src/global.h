@@ -1,7 +1,7 @@
 #ifndef GLOBAL_H
 #define GLOBAL_H
 
-#include "config.hpp"
+#include <string>
 
 #if defined(_MSC_VER)
 #pragma once
@@ -21,9 +21,6 @@
 #include "archutils/Unix/arch_setup.h"
 #endif
 
-/* Make sure everyone has min and max: */
-#include <algorithm>
-
 /* Branch optimizations: */
 #if defined(__GNUC__)
 #define likely(x) (__builtin_expect(!!(x), 1))
@@ -37,15 +34,7 @@
 #undef ASSERT
 #endif
 
-#include "StdString.h"
-/** @brief Use RStrings throughout the program. */
-typedef StdString::CStdString RString;
-
-
 #include "RageThreads.h"
-
-
-
 
 /**
  * @brief A crash has occurred, and we're not getting out of it easily.
@@ -57,9 +46,9 @@ typedef StdString::CStdString RString;
  * @return nothing: there is no escape without quitting the program.
  */
 [[noreturn]]
-void sm_crash(const RString& reason);
+void sm_crash(const std::string& reason);
 [[noreturn]]
-void sm_crash( const char *reason = "Internal error" );
+void sm_crash(const char* reason = "Internal error");
 
 /**
  * @brief Assertion that sets an optional message and brings up the crash
@@ -68,43 +57,56 @@ void sm_crash( const char *reason = "Internal error" );
  * This should probably be used instead of throwing an exception in most
  * cases we expect never to happen (but not in cases that we do expect,
  * such as DSound init failure.) */
-#define FAIL_M(MESSAGE) do { CHECKPOINT_M(MESSAGE); sm_crash(MESSAGE); } while(0)
-#define ASSERT_M(COND, MESSAGE) do { if(unlikely(!(COND))) { FAIL_M(MESSAGE); } } while(0)
-
+#define FAIL_M(MESSAGE)    \
+  do {                     \
+    CHECKPOINT_M(MESSAGE); \
+    sm_crash(MESSAGE);     \
+  } while (0)
+#define ASSERT_M(COND, MESSAGE) \
+  do {                          \
+    if (unlikely(!(COND))) {    \
+      FAIL_M(MESSAGE);          \
+    }                           \
+  } while (0)
 
 #if !defined(CO_EXIST_WITH_MFC)
 #define ASSERT(COND) ASSERT_M((COND), "Assertion '" #COND "' failed")
 #endif
 
 /** @brief Use this to catch switching on invalid values */
-#define DEFAULT_FAIL(i) 	default: FAIL_M( ssprintf("%s = %i", #i, (i)) )
+#define DEFAULT_FAIL(i) \
+  default:              \
+    FAIL_M(ssprintf("%s = %i", #i, (i)))
 
-void ShowWarningOrTrace( const char *file, int line, const RString& message, bool bWarning );
-void ShowWarningOrTrace( const char *file, int line, const char *message, bool bWarning ); // don't pull in LOG here
+void ShowWarningOrTrace(
+    const char* file, int line, const std::string& message, bool bWarning);
+void ShowWarningOrTrace(
+    const char* file, int line, const char* message,
+    bool bWarning);  // don't pull in LOG here
 #define WARN(MESSAGE) (ShowWarningOrTrace(__FILE__, __LINE__, MESSAGE, true))
 #if !defined(CO_EXIST_WITH_MFC)
 #define TRACE(MESSAGE) (ShowWarningOrTrace(__FILE__, __LINE__, MESSAGE, false))
 #endif
 
 #ifdef DEBUG
-// No reason to kill the program. A lot of these don't produce a crash in NDEBUG so why stop?
+// No reason to kill the program. A lot of these don't produce a crash in NDEBUG
+// so why stop?
 // TODO: These should have something you can hook a breakpoint on.
-#define DEBUG_ASSERT_M(COND,MESSAGE) if(unlikely(!(COND))) WARN(MESSAGE)
-#define DEBUG_ASSERT(COND) DEBUG_ASSERT_M(COND,"Debug assert failed")
+#define DEBUG_ASSERT_M(COND, MESSAGE) \
+  if (unlikely(!(COND))) WARN(MESSAGE)
+#define DEBUG_ASSERT(COND) DEBUG_ASSERT_M(COND, "Debug assert failed")
 #else
 /** @brief A dummy define to keep things going smoothly. */
 #define DEBUG_ASSERT(x)
 /** @brief A dummy define to keep things going smoothly. */
-#define DEBUG_ASSERT_M(x,y)
+#define DEBUG_ASSERT_M(x, y)
 #endif
 
-/* Use SM_UNIQUE_NAME to get the line number concatenated to x. This is useful for
- * generating unique identifiers in other macros.  */
-#define SM_UNIQUE_NAME3(x,line) x##line
-#define SM_UNIQUE_NAME2(x,line) SM_UNIQUE_NAME3(x, line)
+/* Use SM_UNIQUE_NAME to get the line number concatenated to x. This is useful
+ * for generating unique identifiers in other macros.  */
+#define SM_UNIQUE_NAME3(x, line) x##line
+#define SM_UNIQUE_NAME2(x, line) SM_UNIQUE_NAME3(x, line)
 #define SM_UNIQUE_NAME(x) SM_UNIQUE_NAME2(x, __LINE__)
-
-#include "RageException.h"
 
 /* Don't include our own headers here, since they tend to change often. */
 
