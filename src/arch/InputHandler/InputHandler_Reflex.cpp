@@ -486,9 +486,8 @@ void InputHandler_Reflex::InputThread(int pn)
 
 		RageTimer LastPoll;
 
-		// const auto sleep_duration_us = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::duration<int>(1000));
-		const auto sleep_duration_us = std::this_thread::sleep_for(chrono::microseconds{1000});
-		std::this_thread::sleep_for(sleep_duration_us);
+		// replaces usleep()
+		std::this_thread::sleep_for(chrono::microseconds{1000});
 		while (!m_bShutdown[pn])
 		{
 
