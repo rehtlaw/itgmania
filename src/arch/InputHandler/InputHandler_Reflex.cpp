@@ -1,11 +1,15 @@
 #include "global.h"
 #include "InputHandler_Reflex.h"
+#include <thread>
 #include "RageLog.h"
 #include "RageUtil.h"
 #include "MessageManager.h"
 #include "GameState.h"
 #include "PrefsManager.h"
 #include "arch/ArchHooks/ArchHooks.h"
+
+#include <thread>
+#include <chrono>
 
 using namespace std;
 
@@ -481,7 +485,10 @@ void InputHandler_Reflex::InputThread(int pn)
 
 
 		RageTimer LastPoll;
-		usleep(1000);
+
+		// const auto sleep_duration_us = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::duration<int>(1000));
+		const auto sleep_duration_us = std::this_thread::sleep_for(chrono::microseconds{1000});
+		std::this_thread::sleep_for(sleep_duration_us);
 		while (!m_bShutdown[pn])
 		{
 

@@ -11,7 +11,6 @@
 const int NUM_JOYSTICKS = 32;
 const int NUM_PUMPS = 2;
 
-<<<<<<< HEAD
 enum InputDevice {
 	DEVICE_KEYBOARD = 0,
 	DEVICE_JOY1,

@@ -274,46 +274,6 @@ void ShutdownGame() {
     LIGHTSMAN->TurnOffAllLights();
   }
 
-<<<<<<< HEAD
-	RageUtil::SafeDelete( NETWORK );
-	RageUtil::SafeDelete( SCREENMAN );
-	RageUtil::SafeDelete( STATSMAN );
-	RageUtil::SafeDelete( MESSAGEMAN );
-	/* Delete INPUTMAN before the other INPUTFILTER handlers, or an input
-	 * driver may try to send a message to INPUTFILTER after we delete it. */
-	RageUtil::SafeDelete( INPUTMAN );
-	RageUtil::SafeDelete( REFLEX );
-	RageUtil::SafeDelete( INPUTQUEUE );
-	RageUtil::SafeDelete( INPUTMAPPER );
-	RageUtil::SafeDelete( INPUTFILTER );
-	RageUtil::SafeDelete( MODELMAN );
-	RageUtil::SafeDelete( PROFILEMAN ); // PROFILEMAN needs the songs still loaded
-	RageUtil::SafeDelete( CHARMAN );
-	RageUtil::SafeDelete( UNLOCKMAN );
-	RageUtil::SafeDelete( CRYPTMAN );
-	RageUtil::SafeDelete( MEMCARDMAN );
-	RageUtil::SafeDelete( SONGMAN );
-	RageUtil::SafeDelete( IMAGECACHE );
-	RageUtil::SafeDelete( SONGINDEX );
-	RageUtil::SafeDelete( SOUND ); // uses GAMESTATE, PREFSMAN
-	RageUtil::SafeDelete( PREFSMAN );
-	RageUtil::SafeDelete( GAMESTATE );
-	RageUtil::SafeDelete( GAMEMAN );
-	RageUtil::SafeDelete( NOTESKIN );
-	RageUtil::SafeDelete( THEME );
-	RageUtil::SafeDelete( ANNOUNCER );
-	RageUtil::SafeDelete( BOOKKEEPER );
-	RageUtil::SafeDelete( LIGHTSMAN );
-	RageUtil::SafeDelete( SOUNDMAN );
-	RageUtil::SafeDelete( FONT );
-	RageUtil::SafeDelete( TEXTUREMAN );
-	RageUtil::SafeDelete( DISPLAY );
-	Dialog::Shutdown();
-	RageUtil::SafeDelete( LOG );
-	RageUtil::SafeDelete( FILEMAN );
-	RageUtil::SafeDelete( LUA );
-	RageUtil::SafeDelete( HOOKS );
-=======
   RageUtil::SafeDelete(NETWORK);
   RageUtil::SafeDelete(SCREENMAN);
   RageUtil::SafeDelete(STATSMAN);
@@ -321,6 +281,7 @@ void ShutdownGame() {
   /* Delete INPUTMAN before the other INPUTFILTER handlers, or an input
    * driver may try to send a message to INPUTFILTER after we delete it. */
   RageUtil::SafeDelete(INPUTMAN);
+	RageUtil::SafeDelete(REFLEX);
   RageUtil::SafeDelete(INPUTQUEUE);
   RageUtil::SafeDelete(INPUTMAPPER);
   RageUtil::SafeDelete(INPUTFILTER);
@@ -352,7 +313,6 @@ void ShutdownGame() {
   RageUtil::SafeDelete(FILEMAN);
   RageUtil::SafeDelete(LUA);
   RageUtil::SafeDelete(HOOKS);
->>>>>>> 4e3a8335aecaf7fa57afeee6c8cdc740187f1b7a
 }
 
 static void HandleException(const std::string& sError) {
@@ -1029,15 +989,9 @@ int sm_main(int argc, char* argv[]) {
     SCREENMAN->SystemMessage(sMessage);
   }
 
-<<<<<<< HEAD
-	REFLEX = new InputHandler_Reflex;
-
-	// Run the main loop.
-	GameLoop::RunGameLoop();
-=======
   CodeDetector::RefreshCacheItems();
->>>>>>> 4e3a8335aecaf7fa57afeee6c8cdc740187f1b7a
 
+	REFLEX = new InputHandler_Reflex;
   // Run the main loop.
   GameLoop::RunGameLoop();
 
